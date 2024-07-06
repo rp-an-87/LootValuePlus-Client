@@ -7,8 +7,8 @@
     <ProjectGuid>{1C987E9F-C3DF-456E-A956-CE3A11E960A7}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>LootValue</RootNamespace>
-    <AssemblyName>LootValue</AssemblyName>
+    <RootNamespace>LootValuePlus</RootNamespace>
+    <AssemblyName>LootValuePlus</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -43,14 +43,11 @@
     <Reference Include="0Harmony">
       <HintPath>..\..\..\BepInEx\core\0Harmony.dll</HintPath>
     </Reference>
-    <!-- <Reference Include="Aki.Build">
-      <HintPath>..\..\EscapeFromTarkov_Data\Managed\Aki.Build.dll</HintPath>
-    </Reference> -->
-    <Reference Include="Aki.Common">
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\Aki.Common.dll</HintPath>
+    <Reference Include="SPT.Common">
+      <HintPath>..\..\..\BepInEx\plugins\spt\spt-common.dll</HintPath>
     </Reference>
-    <Reference Include="Aki.Reflection">
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\Aki.Reflection.dll</HintPath>
+    <Reference Include="SPT.Reflection">
+      <HintPath>..\..\..\BepInEx\plugins\spt\spt-reflection.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll</HintPath>
@@ -118,7 +115,8 @@
   <PropertyGroup>
     <PostBuildEvent>
       copy "$(TargetPath)" "$(ProjectDir)\..\..\..\BepInEx\plugins\$(AssemblyName)\$(TargetFileName)"
-      copy "$(ProjectDir)\..\server\LootValueBackend\src\LootValueStaticRouter.ts" "$(ProjectDir)\..\..\..\user\mods\$(Author)-LootValueBackend\src\LootValueStaticRouter.ts"
+      copy "$(ProjectDir)\..\server\LootValuePlus\src\mod.ts" "$(ProjectDir)\..\..\..\user\mods\LootValuePlus\src\mod.ts"
+      copy "$(ProjectDir)\..\server\LootValuePlus\package.json" "$(ProjectDir)\..\..\..\user\mods\LootValuePlus\package.json"
       echo "$(TargetPath)"
     </PostBuildEvent>
   </PropertyGroup>
