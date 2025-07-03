@@ -15,6 +15,14 @@
     <LangVersion>latest</LangVersion>
     <Author>rp-87</Author>
   </PropertyGroup>
+  <PropertyGroup>
+    <SptDir>C:\SPT Stuff\SPT 3113</SptDir> <!-- Change this! -->
+    <BepInExRootDir>$(SptDir)\BepInEx</BepInExRootDir>
+    <EFTManagedDir>$(SptDir)\EscapeFromTarkov_Data\Managed</EFTManagedDir>
+    <ServerModProjectDir>$(ProjectDir)\..\server\LootValuePlus</ServerModProjectDir>
+    <ServerModTargetDir>$(SptDir)\user\mods</ServerModTargetDir>
+    <ClientModTargetDir>$(BepInExRootDir)\plugins</ClientModTargetDir>
+  </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
@@ -42,37 +50,37 @@
   </ItemGroup>
    <ItemGroup>
     <Reference Include="0Harmony">
-      <HintPath>..\..\..\BepInEx\core\0Harmony.dll</HintPath>
+      <HintPath>$(BepInExRootDir)\core\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="SPT.Common">
-      <HintPath>..\..\..\BepInEx\plugins\spt\spt-common.dll</HintPath>
+      <HintPath>$(BepInExRootDir)\plugins\spt\spt-common.dll</HintPath>
     </Reference>
     <Reference Include="SPT.Reflection">
-      <HintPath>..\..\..\BepInEx\plugins\spt\spt-reflection.dll</HintPath>
+      <HintPath>$(BepInExRootDir)\plugins\spt\spt-reflection.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\Assembly-CSharp.dll</HintPath>
     </Reference>
     <Reference Include="BepInEx">
-      <HintPath>..\..\..\BepInEx\core\BepInEx.dll</HintPath>
+      <HintPath>$(BepInExRootDir)\core\BepInEx.dll</HintPath>
     </Reference>
     <Reference Include="Comfort">
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\Comfort.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\Comfort.dll</HintPath>
     </Reference>
     <Reference Include="ItemComponents">
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\ItemComponent.Types.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\ItemComponent.Types.dll</HintPath>
     </Reference>
     <Reference Include="Comfort.Unity, Version=1.0.0.4, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\Comfort.Unity.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\Comfort.Unity.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\Newtonsoft.Json.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Sirenix.Serialization, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\Sirenix.Serialization.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\Sirenix.Serialization.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -84,41 +92,39 @@
     <Reference Include="System.Xml" />
     <Reference Include="Unity.TextMeshPro, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\Unity.TextMeshPro.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\Unity.TextMeshPro.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\UnityEngine.AssetBundleModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\UnityEngine.InputLegacyModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\EscapeFromTarkov_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <HintPath>$(EFTManagedDir)\UnityEngine.UI.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>
-      copy "$(TargetPath)" "$(ProjectDir)\..\..\..\BepInEx\plugins\$(AssemblyName)\$(TargetFileName)"
-      copy "$(ProjectDir)\..\server\LootValuePlus\src\mod.ts" "$(ProjectDir)\..\..\..\user\mods\LootValuePlus\src\mod.ts"
-      copy "$(ProjectDir)\..\server\LootValuePlus\config\config.json" "$(ProjectDir)\..\..\..\user\mods\LootValuePlus\config\config.json"
-      copy "$(ProjectDir)\..\server\LootValuePlus\package.json" "$(ProjectDir)\..\..\..\user\mods\LootValuePlus\package.json"
+      if not exist "$(ClientModTargetDir)\$(AssemblyName)" mkdir "$(ClientModTargetDir)\$(AssemblyName)"
+      copy "$(TargetPath)" "$(ClientModTargetDir)\$(AssemblyName)\$(TargetFileName)"
       echo "$(TargetPath)"
     </PostBuildEvent>
   </PropertyGroup>
