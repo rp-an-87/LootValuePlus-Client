@@ -82,6 +82,38 @@ namespace LootValuePlus
 			return templateIds.Select(id => cache[id].price).Sum();
 		}
 
+		public static async Task FetchPricesAndUpdateCache()
+		{
+			bool fleaAvailable = Session.RagFair.Available || LootValueMod.ShowFleaPriceBeforeAccess.Value;
+			if (!fleaAvailable)
+			{
+				return;
+			}
+
+			// fetch all ids & update cache
+			// Globals.logger.LogInfo($"Getting prices");
+			var prices = await GetAllTemplateIdSellingPrice();
+			// Globals.logger.LogInfo($"Get prices: {prices}");
+			prices.ExecuteForEach(price =>
+			{
+				var templateId = price.templateId;
+				if (cache.ContainsKey(templateId))
+				{
+					// Globals.logger.LogInfo($"Update cache [{templateId}]: {price.price}");
+					cache[templateId].Update(price.price);
+				}
+				else
+				{
+					// Globals.logger.LogInfo($"Create cache [{templateId}]: {price.price}");
+					cache[templateId] = new CachePrice(price.price);
+				}
+			});
+
+			return;
+		}
+
+
+
 		private static async Task<int> QueryTemplateIdSellingPrice(string templateId)
 		{
 			string response = await QueryPrice(templateId);
@@ -110,6 +142,18 @@ namespace LootValuePlus
 			return JsonConvert.DeserializeObject<FleaPricesResponse>(response).prices;
 		}
 
+		private static async Task<IEnumerable<FleaPrice>> GetAllTemplateIdSellingPrice()
+		{
+			string response = await QueryPrices();
+			if (string.IsNullOrEmpty(response) || response == "null")
+			{
+				return [];
+			}
+
+			// Globals.logger.LogInfo($"RESPONSE: {response}");
+			return JsonConvert.DeserializeObject<FleaPricesResponse>(response).prices;
+		}
+
 		private static async Task<string> QueryPrice(string templateId)
 		{
 			return await CustomRequestHandler.PostJsonAsync("/LootValue/GetItemLowestFleaPrice", JsonConvert.SerializeObject(new FleaPriceRequest(templateId)));
@@ -118,6 +162,11 @@ namespace LootValuePlus
 		private static async Task<string> QueryPrice(IEnumerable<string> templateIds)
 		{
 			return await CustomRequestHandler.PostJsonAsync("/LootValue/GetMultipleItemsSellingFleaPrice", JsonConvert.SerializeObject(new FleaPricesRequest(templateIds)));
+		}
+
+		private static async Task<string> QueryPrices()
+		{
+			return await CustomRequestHandler.GetAsync("/LootValue/GetAllItemSellingFleaPrice");
 		}
 
 	}
@@ -164,7 +213,7 @@ namespace LootValuePlus
 
 		public bool ShouldUpdate()
 		{
-			return (DateTime.Now - lastUpdate).TotalSeconds >= 600;
+			return (DateTime.Now - lastUpdate).TotalSeconds >= LootValueMod.CacheTtl.Value;
 		}
 	}
 }

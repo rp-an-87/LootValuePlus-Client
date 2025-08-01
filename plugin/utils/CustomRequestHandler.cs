@@ -57,5 +57,19 @@ namespace LootValuePlus
             return @string;
         }
 
+        public static async Task<string> GetAsync(string path)
+        {
+            byte[] bytes2 = await HttpClient.GetAsync(path);
+
+            if (null == bytes2)
+            {
+                return null;
+            }
+
+            string @string = Encoding.UTF8.GetString(bytes2);
+            ValidateJson(path, @string);
+            return @string;
+        }
+
     }
 }
