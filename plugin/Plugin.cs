@@ -8,6 +8,8 @@ using Comfort.Common;
 using static LootValuePlus.Globals;
 using EFT.InventoryLogic;
 using UnityEngine;
+using System.Threading.Tasks;
+using System;
 
 namespace LootValuePlus
 {
@@ -33,7 +35,9 @@ namespace LootValuePlus
 			new HoverItemController.GridItemOnPointerExitPatch().Enable();
 			new ClickItemController.ItemViewOnClickPatch().Enable();
 			new ScreenChangeController.ScreenTypePatch().Enable();
-
+			new PriceController.OnGameSessionEndPatch().Enable();
+			new PriceController.ProfileSelectedPatch().Enable();
+			new PriceController.FleaMarketOpenPatch().Enable();
 
 			SlotColoring.UseDefaultColors();
 		}
@@ -70,6 +74,10 @@ namespace LootValuePlus
 		internal static ConfigEntry<bool> ReducePriceInFleaForBrokenItem;
 		internal static ConfigEntry<bool> ShowFleaMarketEligibility;
 		internal static ConfigEntry<bool> ShowNonVitalWeaponPartsFleaPrice;
+
+		internal static ConfigEntry<bool> EnableGlobalCache;
+		internal static ConfigEntry<bool> UpdateGlobalCacheOnFleaMarketOpen;
+		internal static ConfigEntry<int> CacheTtl;
 
 		private void SetupConfig()
 		{
@@ -113,46 +121,84 @@ If enabled:
 			SellToTraderDurabilityThreshold = Config.Bind("1. Quick Sell", "8.1. -> Durability threshold %", 0,
 				"This means that any item that is below this % of durability, will be sold to trader regardless of flea market price. This means if this value is configured at 50%, an ifak with 150/300 would be sold to the traders instead the flea market.");
 			ReducePriceInFleaForBrokenItem = Config.Bind("1. Quick Sell", "9. Reduce flea market offer relative to missing durability of item", true,
-				"This means if any item that has durability, i.e: IFAK, has 200/300 (66% durability remaining), it's flea market price will be reduced by 33%. This applies to most of things that have a durability bar.");				
+				"This means if any item that has durability, i.e: IFAK, has 200/300 (66% durability remaining), it's flea market price will be reduced by 33%. This applies to most of things that have a durability bar.");
+
+
+			CreateAdvancedConfig();
+		}
+
+		private void CreateAdvancedConfig()
+		{
+
+			EnableGlobalCache = Config.Bind("2. Advanced", "0. Enable Global Item Cache", true, getAdvancedConfigDescription("All items are fetched on profile load and when a match ends."));
+			UpdateGlobalCacheOnFleaMarketOpen = Config.Bind("2. Advanced", "0.1. -> Fetch all prices when opening flea market", false, getAdvancedConfigDescription("Also update all prices when opening flea market."));
+			CacheTtl = Config.Bind("2. Advanced", "1. Individual Item Cache TTL", 3600, getAdvancedConfigDescription("Time to live for each individual item in the cache."));
 
 			CreateSimpleButton(
-				"2. Debug",
-				"Cache",
+				"2. Advanced",
+				"2. Reset Cache",
 				"Click to Reset",
 				"This will reset the cache of all prices",
+				true,
 				() =>
 				{
 					FleaPriceCache.cache.Clear();
 					return "";
 				}
 			);
+
+			CreateSimpleButton(
+				"2. Advanced",
+				"3. Update Global Cache",
+				"Click to get all prices",
+				"This will get all prices",
+				true,
+				() =>
+				{
+					Task.Run(() => FleaPriceCache.FetchPricesAndUpdateCache());
+					return "";
+				}
+			);
+
+
 		}
-		
+
 		private void CreateSimpleButton(
-            string configSection,
-            string configEntryName,
-            string buttonName,
-            string description,
-            System.Func<string> doThings
-        )
-        {
-            System.Action<ConfigEntryBase> drawer = (ConfigEntryBase entry) =>
-            {
-                if (GUILayout.Button(buttonName, GUILayout.ExpandWidth(true)))
-                {
-                    doThings();
-                }
-            };
+			string configSection,
+			string configEntryName,
+			string buttonName,
+			string description,
+			bool isAdvanced,
+			System.Func<string> doThings
+		)
+		{
+			System.Action<ConfigEntryBase> drawer = (ConfigEntryBase entry) =>
+			{
+				if (GUILayout.Button(buttonName, GUILayout.ExpandWidth(true)))
+				{
+					doThings();
+				}
+			};
 
 			ConfigDescription configDescription =
-                new(
-                    description,
-                    null,
-                    new ConfigurationManagerAttributes { CustomDrawer = drawer }
-                );
+				new(
+					description,
+					null,
+					new ConfigurationManagerAttributes { CustomDrawer = drawer, IsAdvanced = isAdvanced }
+				);
 
-            Config.Bind(configSection, configEntryName, "", configDescription);
-        }
+			Config.Bind(configSection, configEntryName, "", configDescription);
+		}
+
+		private ConfigDescription getAdvancedConfigDescription(string description)
+		{
+			return new ConfigDescription(				
+					description,
+					null,
+					new ConfigurationManagerAttributes { IsAdvanced = true }
+				);
+		}
+
 	}
 
 	internal class TraderPatch : ModulePatch
