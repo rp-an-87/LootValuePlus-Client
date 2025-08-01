@@ -177,7 +177,12 @@ namespace LootValuePlus
 
 		public static bool IsItemInPlayerInventory(Item item)
 		{
-			var ownerType = item.Owner.OwnerType;
+			var ownerType = item?.Owner?.OwnerType;
+			if (ownerType == null)
+			{
+				return false;
+			}
+
 			return EOwnerType.Profile.Equals(ownerType);
 		}
 
