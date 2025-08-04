@@ -83,8 +83,8 @@ namespace LootValuePlus
 
 		public static int GetTotalPriceOfAllSimilarItemsWithinSameContainer(Item item)
 		{
-			var includePinned = LootValueMod.AllowQuickSellPinned.Value;
-			var includeLocked = LootValueMod.AllowQuickSellLocked.Value;
+			var includePinned = LootValueMod.AllowQuickSellPinned.Value; // we wanna exclude pinned items from the total calculation if this is disabled
+			var includeLocked = LootValueMod.AllowQuickSellLocked.Value; // we wanna exclude locked items from the total calculation if this is disabled
 			var unitPrice = GetFleaMarketUnitPriceWithModifiers(item);
 			var items = ItemUtils.GetItemsSimilarToItemWithinSameContainer(item, includePinned, includeLocked);
 			return items.Select(i => unitPrice * i.StackObjectsCount).Sum();
@@ -93,12 +93,9 @@ namespace LootValuePlus
 		public static bool IsItemFleaMarketPriceBelow(Item item, int priceThreshold, bool considerMultipleItems = false)
 		{
 			var unitPrice = GetFleaMarketUnitPriceWithModifiers(item);
-			if (considerMultipleItems)
+			if (considerMultipleItems) // if you have multiple items that can be sold together, the price becomes the sum of each one individually
 			{
-				var includePinned = LootValueMod.AllowQuickSellPinned.Value;
-				var includeLocked = LootValueMod.AllowQuickSellLocked.Value;
-				var items = ItemUtils.GetItemsSimilarToItemWithinSameContainer(item, includePinned, includeLocked);
-				var price = items.Select(i => unitPrice * i.StackObjectsCount).Sum();
+				var price = GetTotalPriceOfAllSimilarItemsWithinSameContainer(item);
 				return price < priceThreshold;
 			}
 			else

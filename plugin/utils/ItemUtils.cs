@@ -189,7 +189,7 @@ namespace LootValuePlus
 		}
 
 		/**
-		* Includes original item!
+		* Includes original item, always, even if locked/pinned!
 		*/
 		public static IEnumerable<Item> GetItemsSimilarToItemWithinSameContainer(Item item, bool includePinnedItems = true, bool includeLockedItems = true)
 		{
@@ -199,13 +199,13 @@ namespace LootValuePlus
 				return [];
 			}
 
-			var itemsOfParent = item.Parent.Container.Items ?? [];
+			var itemsOfParent = item.Parent?.Container?.Items ?? [];
 
 			return itemsOfParent
 				.Where(o => item.Compare(o)) // select all same items
 				.Where(o => o.MarkedAsSpawnedInSession == item.MarkedAsSpawnedInSession) // all must have same FiR status
-				.Where(o => includePinnedItems || !IsItemPinned(o)) // if not including pinned items, we keep non pinned items
-				.Where(o => includeLockedItems || !IsItemLocked(o)); // if not including locked items, we keep non locked items
+				.Where(o => o == item || includePinnedItems || !IsItemPinned(o)) // if not including pinned items, we only keep non pinned items; we still keep the item itself regardless
+				.Where(o => o == item || includeLockedItems || !IsItemLocked(o)); // if not including locked items, we only keep non locked items; we still keep the item itself regardless
 		}
 
 		public static bool IsItemLocked(Item item)
