@@ -27,26 +27,38 @@ namespace LootValuePlus
 				var cachedPrice = cache[templateId];
 				if (cachedPrice.ShouldUpdate())
 				{
-					
 					if (LootValueMod.UpdateGlobalCacheIfAnyCacheOutOfDate.Value && LootValueMod.EnableGlobalCache.Value)
 					{
 						// refresh global cache instead
 						await FetchPricesAndUpdateCache();
+						return cachedPrice?.price ?? 0;
 					}
 					else
 					{
 						// fetch individual price
 						var price = await QueryTemplateIdSellingPrice(templateId);
 						cachedPrice.Update(price);
+						return price;
 					}
 				}
 				return cachedPrice.price;
 			}
 			else
 			{
-				var price = await QueryTemplateIdSellingPrice(templateId);
-				cache[templateId] = new CachePrice(price);
-				return price;
+				if (LootValueMod.UpdateGlobalCacheIfAnyCacheOutOfDate.Value && LootValueMod.EnableGlobalCache.Value)
+				{
+					// refresh global cache instead
+					await FetchPricesAndUpdateCache();
+					return cache[templateId]?.price ?? 0;
+				}
+				else
+				{
+					var price = await QueryTemplateIdSellingPrice(templateId);
+					cache[templateId] = new CachePrice(price);
+					return price;
+				}
+
+				
 			}
 		}
 
@@ -101,7 +113,7 @@ namespace LootValuePlus
 				});
 			}
 			
-			return templateIds.Select(id => cache[id].price).Sum();
+			return templateIds.Select(id => cache[id]?.price ?? 0).Sum();
 		}
 
 		public static async Task FetchPricesAndUpdateCache()
@@ -122,16 +134,8 @@ namespace LootValuePlus
 			prices.ExecuteForEach(price =>
 			{
 				var templateId = price.templateId;
-				if (cache.ContainsKey(templateId))
-				{
-					// Globals.logger.LogInfo($"Update cache [{templateId}]: {price.price}");
-					cache[templateId].Update(price.price);
-				}
-				else
-				{
-					// Globals.logger.LogInfo($"Create cache [{templateId}]: {price.price}");
-					cache[templateId] = new CachePrice(price.price);
-				}
+				// Globals.logger.LogInfo($"Create cache [{templateId}]: {price.price}");
+				cache[templateId] = new CachePrice(price.price);
 			});
 
 			return;
