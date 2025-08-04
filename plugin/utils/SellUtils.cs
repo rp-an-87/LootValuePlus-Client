@@ -26,8 +26,8 @@ namespace LootValuePlus
 
 		public static int GetFleaValue(IEnumerable<Item> items)
 		{
-			var soldableItems = items.Where(item => item.Template.CanSellOnRagfair);
-			var templateIds = soldableItems.Select(item => item.TemplateId.ToString());
+			var sellableItems = items.Where(item => item.Template.CanSellOnRagfair);
+			var templateIds = sellableItems.Select(item => item.TemplateId.ToString());
 
 			var price = Task.Run(() => FleaPriceCache.FetchPrice(templateIds)).Result;
 
@@ -261,7 +261,7 @@ namespace LootValuePlus
 		{
 			var offerRequeriment = new FleaRequirement()
 			{
-				count = price, //undercut by 1 ruble
+				count = price,
 				_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
 			};
 
@@ -351,6 +351,22 @@ namespace LootValuePlus
 					NotificationManagerClass.DisplayWarningNotification("Quicksell: item is not empty.");
 					return;
 				}
+
+				var canSellPinnedItems = LootValueMod.AllowQuickSellPinned.Value;
+				var canSellLockedItems = LootValueMod.AllowQuickSellLocked.Value;
+
+				if (item.PinLockState == EItemPinLockState.Pinned && !canSellPinnedItems)
+				{
+					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item is pinned.");
+					return;
+				}
+
+				if (item.PinLockState == EItemPinLockState.Locked && !canSellLockedItems)
+				{
+					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item is locked.");
+					return;
+				}
+
 
 				SellToTrader(item, bestTraderOffer);
 			}

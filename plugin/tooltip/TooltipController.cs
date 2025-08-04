@@ -269,12 +269,14 @@ namespace LootValuePlus
 					{
 						AppendFullLineToTooltip(ref text, "(Item is pinned)", 11, "#AA3333");
 						canBeSoldToFlea = false;
+						canBeSoldToTrader = false;
 					}
-					
-					if ( item.PinLockState == EItemPinLockState.Locked && !canSellLockedItems)
+
+					if (item.PinLockState == EItemPinLockState.Locked && !canSellLockedItems)
 					{
 						AppendFullLineToTooltip(ref text, "(Item is locked)", 11, "#AA3333");
 						canBeSoldToFlea = false;
+						canBeSoldToTrader = false;
 					}
 
 				}
