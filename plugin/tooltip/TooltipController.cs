@@ -287,17 +287,24 @@ namespace LootValuePlus
 					var color = SlotColoring.GetColorFromTotalValue(fleaPricesForWeaponMods);
 					StartSizeTag(ref text, 12);
 					AppendTextToToolip(ref text, $"₽ {fleaPricesForWeaponMods.FormatNumber()} ", color);
-					AppendTextToToolip(ref text, $"in non-vital parts (flea)", "#555555");
+					AppendTextToToolip(ref text, "in non-vital parts (flea)", "#555555");
 					EndSizeTag(ref text);
 				}
 
+				var shouldShowPricePerSlotAndPerKgInRaid = LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value;
+				var shouldShowPricePerSlotAndPerKgOutRaid = LootValueMod.ShowPricePerKgAndPerSlotOutOfRaid.Value;
+				var shouldShowPricePerKgWeight = isInRaid ? shouldShowPricePerSlotAndPerKgInRaid : shouldShowPricePerSlotAndPerKgOutRaid;
 				if (fleaPricesForContainedItems > 0 && shouldShowFleaMarketPrices)
 				{
 					AppendNewLineToTooltipText(ref text);
 					var color = SlotColoring.GetColorFromTotalValue(fleaPricesForContainedItems);
 					StartSizeTag(ref text, 12);
-					AppendTextToToolip(ref text, $"₽ {fleaPricesForContainedItems.FormatNumber()} ", color);
-					AppendTextToToolip(ref text, $"of items inside (flea)", "#555555");
+					AppendTextToToolip(ref text, $"₽ {fleaPricesForContainedItems.FormatNumber()}", color);
+					if (overrideWeightAndSlotPriceWithContainedPrice && shouldShowPricePerKgWeight)
+					{
+						AppendTextToToolip(ref text, "*", "#2f485b");
+					}
+					AppendTextToToolip(ref text, " of items inside (flea)", "#555555");
 					EndSizeTag(ref text);
 				}
 
@@ -346,10 +353,6 @@ namespace LootValuePlus
 					AppendFullLineToTooltip(ref text, "(Item is banned from flea market)", 11, "#AA3333");
 				}
 
-				var shouldShowPricePerSlotAndPerKgInRaid = LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value;
-				var shouldShowPricePerSlotAndPerKgOutRaid = LootValueMod.ShowPricePerKgAndPerSlotOutOfRaid.Value;
-				var shouldShowPricePerKgWeight = isInRaid ? shouldShowPricePerSlotAndPerKgInRaid : shouldShowPricePerSlotAndPerKgOutRaid;
-
 				if (shouldShowPricePerKgWeight)
 				{
 					var overrideWithContained = overrideWeightAndSlotPriceWithContainedPrice && fleaPricesForContainedItems > 0 && shouldShowFleaMarketPrices;
@@ -375,14 +378,18 @@ namespace LootValuePlus
 					}
 
 					AppendSeparator(ref text);
-					if (overrideWithContained)
-					{
-						AppendTextToToolip(ref text, "w/ contained items:", "#555555");
-					}
 					StartSizeTag(ref text, 11);
 					AppendTextToToolip(ref text, $"₽ / KG\t{pricePerWeight.FormatNumber()}", "#555555");
+					if (overrideWithContained)
+					{
+						AppendTextToToolip(ref text, "*", "#2f485b");
+					}
 					AppendNewLineToTooltipText(ref text);
 					AppendTextToToolip(ref text, $"₽ / SLOT\t{pricePerSlot.FormatNumber()}", "#555555");
+					if (overrideWithContained)
+					{
+						AppendTextToToolip(ref text, "*", "#2f485b");
+					}
 					EndSizeTag(ref text);
 				}
 
