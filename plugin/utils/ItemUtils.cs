@@ -125,9 +125,11 @@ namespace LootValuePlus
 			return false;
 		}
 
-		// this seems to work to Everything but armored rigs
-		// If the item is not empty, it will not properly calculate the offer
-		// For some reason it works for armors, weapons, helmets, but not for armored rigs
+		// This seems to work to Everything but armored rigs
+		// If the item is not empty, it will not properly calculate the trader offer price, as it will include all items inside too
+		// For that reason, we clone the base item, and that will not clone it's internal inventory
+		// For some reason the price calculation works for cloned armors, weapons, helmets, but not for armored rigs
+		// It's not really that important as armored rigs are almost always more expensive in the flea market anyways
 		public static Item CloneItemSafely(Item item)
 		{
 			var clone = item.CloneVisibleItem();
