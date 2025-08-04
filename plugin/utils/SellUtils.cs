@@ -170,6 +170,14 @@ namespace LootValuePlus
 				return false;
 			}
 
+			if (ItemUtils.IsSoftArmorInsert(item))
+			{
+				if (displayWarning)
+					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item can't be removed from the armor.");
+
+				return false;
+			}
+
 			var canSellPinnedItems = LootValueMod.AllowQuickSellPinned.Value;
 			var canSellLockedItems = LootValueMod.AllowQuickSellLocked.Value;
 

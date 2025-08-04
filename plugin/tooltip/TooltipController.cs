@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using System.Reflection;
 using SPT.Reflection.Patching;
@@ -6,31 +5,37 @@ using EFT.InventoryLogic;
 using EFT.UI;
 using static LootValuePlus.TooltipUtils;
 using SPT.Reflection.Utils;
-using EFT.UI.Screens;
 using UnityEngine;
 
 namespace LootValuePlus
 {
 
-	internal class TooltipController
+	internal static class TooltipContext
 	{
+		public static string Text;
+		public static float Delay;
+		public static SimpleTooltip Tooltip;
 
-		private static SimpleTooltip tooltip;
-
-		public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
-
-		public static void SetupTooltip(SimpleTooltip _tooltip, ref float delay)
+		public static void SetupTooltip(SimpleTooltip _tooltip, ref float _delay, ref string _text)
 		{
-			tooltip = _tooltip;
-			delay = 0;
+			Text = _text;
+			Delay = _delay;
+			Tooltip = _tooltip;
+
+			_delay = 0;
 		}
 
 		public static void ClearTooltip()
 		{
-			tooltip?.Close();
-			tooltip = null;
+			Tooltip?.Close();
+			Tooltip = null;
 		}
+	}
 
+	internal class TooltipController
+	{
+
+		public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
 
 		internal class ShowTooltipPatch : ModulePatch
 		{
@@ -46,10 +51,14 @@ namespace LootValuePlus
 			[PatchPrefix]
 			private static void Prefix(ref string text, ref Vector2? offset, ref float delay, SimpleTooltip __instance)
 			{
-				SetupTooltip(__instance, ref delay);
+				TooltipContext.SetupTooltip(__instance, ref delay, ref text);
+				HandleTooltipText(ref text);
+			}
 
+			private static void HandleTooltipText(ref string text)
+			{
 				var item = HoverItemController.hoveredItem;
-				if (item == null || tooltip == null)
+				if (item == null || TooltipContext.Tooltip == null)
 				{
 					return;
 				}
@@ -66,6 +75,7 @@ namespace LootValuePlus
 				bool hideLowerPriceInRaid = LootValueMod.HideLowerPriceInRaid.Value;
 				bool showFleaPriceBeforeAccess = LootValueMod.ShowFleaPriceBeforeAccess.Value;
 				bool hasFleaMarketAvailable = Session.RagFair.Available;
+				bool shouldShowFleaMarketPrices = hasFleaMarketAvailable || showFleaPriceBeforeAccess;
 
 				bool isInRaid = Globals.HasRaidStarted();
 
@@ -83,12 +93,12 @@ namespace LootValuePlus
 				var durability = ItemUtils.GetResourcePercentageOfItem(item);
 				var missingDurability = 100 - durability * 100;
 
-				int stackAmount = item.StackObjectsCount;
-				bool isItemEmpty = item.IsEmpty();
-				bool applyConditionReduction = LootValueMod.ReducePriceInFleaForBrokenItem.Value;
+				var stackAmount = item.StackObjectsCount;
+				var isItemEmpty = item.IsEmpty();
+				var applyConditionReduction = LootValueMod.ReducePriceInFleaForBrokenItem.Value;
 
-				int finalFleaPrice = FleaUtils.GetFleaMarketUnitPriceWithModifiers(item) * stackAmount;
-				bool canBeSoldToFlea = finalFleaPrice > 0;
+				var finalFleaPrice = FleaUtils.GetFleaMarketUnitPriceWithModifiers(item) * stackAmount;
+				var canBeSoldToFlea = finalFleaPrice > 0;
 
 				var finalTraderPrice = TraderUtils.GetBestTraderPrice(item);
 				bool canBeSoldToTrader = finalTraderPrice > 0;
@@ -106,6 +116,13 @@ namespace LootValuePlus
 				bool sellToTrader = isTraderPriceHigherThanFlea;
 				bool sellToFlea = !sellToTrader;
 
+				if (ItemUtils.IsSoftArmorInsert(item))
+				{
+					AppendFullLineToTooltip(ref text, "(Item can't be sold)", 11, "#AA3333");
+					return;
+				}
+
+
 				// If both trader and flea are 0, then the item is not purchasable.
 				if (!canBeSoldToTrader && !canBeSoldToFlea)
 				{
@@ -122,7 +139,18 @@ namespace LootValuePlus
 					fleaPricesForWeaponMods = FleaUtils.GetFleaValue(nonVitalMods);
 				}
 
-				// TODO: add another thing that fetches price of all items within item if pressing a modifier, which should not apply to weapons
+				var fleaPricesForContainedItems = 0;
+				var shouldShowItemsContainedPrices = LootValueMod.ShowTotalFleaValueOfContainedItems.Value;
+				var overrideWeightAndSlotPriceWithContainedPrice = LootValueMod.TotalValueOfContainedItemsOverridesKgAndSlotPrice.Value;
+				if (shouldShowItemsContainedPrices && Input.GetKey(KeyCode.LeftAlt) && shouldShowFleaMarketPrices)
+				{
+					var containedItems = ItemUtils.GetContainedSellableItems(item);
+					fleaPricesForContainedItems = containedItems.Select(ci => FleaUtils.GetFleaMarketUnitPriceWithModifiers(ci) * ci.StackObjectsCount).Sum();
+					if (fleaPricesForContainedItems > 0 && overrideWeightAndSlotPriceWithContainedPrice)
+					{
+						pricePerSlotFlea = fleaPricesForContainedItems / slots;
+					}
+				}
 
 				if (sellToFlea && !hasFleaMarketAvailable)
 				{
@@ -212,7 +240,7 @@ namespace LootValuePlus
 				{
 					showFleaPrice = false;
 				}
-				if (!hasFleaMarketAvailable && !showFleaPriceBeforeAccess)
+				if (!shouldShowFleaMarketPrices)
 				{
 					showFleaPrice = false;
 				}
@@ -251,30 +279,39 @@ namespace LootValuePlus
 
 					EndSizeTag(ref text);
 
-					// Only show this out of raid
-					if (!isInRaid && !isTraderPriceHigherThanFlea)
-					{
-						if (FleaUtils.ContainsNonFleableItemsInside(item))
-						{
-							AppendFullLineToTooltip(ref text, "(Contains banned flea items inside)", 11, "#AA3333");
-							canBeSoldToFlea = false;
-						}
-
-					}
-
 				}
 
-				if (fleaPricesForWeaponMods > 0 && hasFleaMarketAvailable)
+				if (fleaPricesForWeaponMods > 0 && shouldShowFleaMarketPrices)
 				{
 					AppendNewLineToTooltipText(ref text);
 					var color = SlotColoring.GetColorFromTotalValue(fleaPricesForWeaponMods);
 					StartSizeTag(ref text, 12);
 					AppendTextToToolip(ref text, $"₽ {fleaPricesForWeaponMods.FormatNumber()} ", color);
-					AppendTextToToolip(ref text, $"in parts (flea)", "#555555");
+					AppendTextToToolip(ref text, $"in non-vital parts (flea)", "#555555");
 					EndSizeTag(ref text);
 				}
 
-				// TODO: add a (configurable) HOLD key modifier to show ALL parts of weapon, not just the non vital mods
+				if (fleaPricesForContainedItems > 0 && shouldShowFleaMarketPrices)
+				{
+					AppendNewLineToTooltipText(ref text);
+					var color = SlotColoring.GetColorFromTotalValue(fleaPricesForContainedItems);
+					StartSizeTag(ref text, 12);
+					AppendTextToToolip(ref text, $"₽ {fleaPricesForContainedItems.FormatNumber()} ", color);
+					AppendTextToToolip(ref text, $"of items inside (flea)", "#555555");
+					EndSizeTag(ref text);
+				}
+
+				// Only show this out of raid
+				if (!isInRaid && !isTraderPriceHigherThanFlea && shouldShowFleaMarketPrices)
+				{
+					if (FleaUtils.ContainsNonFleableItemsInside(item))
+					{
+						AppendFullLineToTooltip(ref text, "(Contains banned flea items)", 11, "#AA3333");
+						canBeSoldToFlea = false;
+					}
+
+				}
+
 
 				if (!isInRaid)
 				{
@@ -311,20 +348,37 @@ namespace LootValuePlus
 
 				var shouldShowPricePerSlotAndPerKgInRaid = LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value;
 				var shouldShowPricePerSlotAndPerKgOutRaid = LootValueMod.ShowPricePerKgAndPerSlotOutOfRaid.Value;
-				var shouldShowPricePerKgWeight = (isInRaid && shouldShowPricePerSlotAndPerKgInRaid) || (!isInRaid && shouldShowPricePerSlotAndPerKgOutRaid);
+				var shouldShowPricePerKgWeight = isInRaid ? shouldShowPricePerSlotAndPerKgInRaid : shouldShowPricePerSlotAndPerKgOutRaid;
 
 				if (shouldShowPricePerKgWeight)
 				{
+					var overrideWithContained = overrideWeightAndSlotPriceWithContainedPrice && fleaPricesForContainedItems > 0 && shouldShowFleaMarketPrices;
 					var pricePerSlot = sellToTrader ? pricePerSlotTrader : pricePerSlotFlea;
-					var unitPrice = sellToTrader ? (finalTraderPrice / stackAmount) : FleaUtils.GetFleaMarketUnitPriceWithModifiers(item);
-					var pricePerWeight = (int)(unitPrice / item.TotalWeight);
+					if (overrideWithContained)
+					{
+						pricePerSlot = pricePerSlotFlea;
+					}
 
+					var unitPrice = sellToTrader
+						? finalTraderPrice / stackAmount
+						: FleaUtils.GetFleaMarketUnitPriceWithModifiers(item);
+
+					if (overrideWithContained)
+					{
+						unitPrice = fleaPricesForContainedItems;
+					}
+
+					var pricePerWeight = (int)(unitPrice * item.StackObjectsCount / item.TotalWeight);
 					if (item.TotalWeight.ApproxEquals(0.0f))
 					{
 						pricePerWeight = 0;
 					}
 
 					AppendSeparator(ref text);
+					if (overrideWithContained)
+					{
+						AppendTextToToolip(ref text, "w/ contained items:", "#555555");
+					}
 					StartSizeTag(ref text, 11);
 					AppendTextToToolip(ref text, $"₽ / KG\t{pricePerWeight.FormatNumber()}", "#555555");
 					AppendNewLineToTooltipText(ref text);
@@ -374,8 +428,6 @@ namespace LootValuePlus
 					}
 
 				}
-
-
 			}
 
 			private static void AddMultipleItemsSaleSection(ref string text, Item item)

@@ -106,6 +106,19 @@ namespace LootValuePlus
 			return nonVitalMods;
 		}
 
+		public static IEnumerable<Item> GetContainedSellableItems(Item item)
+		{
+			return item.GetAllItems()
+					.Where(i => i.CanSellOnRagfair)
+					.Where(i => !IsSoftArmorInsert(i))
+					.Where(i => i != item);
+		}
+
+		public static bool IsSoftArmorInsert(Item item)
+		{
+			return TemplateIdToObjectMappingsClass.TypeTable[item.Template.ParentId] == typeof(BuiltInInsertsItemClass);
+		}
+
 		public static bool IsItemWeapon(Item item)
 		{
 			if (item is Weapon)

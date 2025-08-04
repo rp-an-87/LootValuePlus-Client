@@ -28,7 +28,7 @@ namespace LootValuePlus
                 bool runOriginalMethod = true;
                 if (__instance == null || __instance.Item == null || itemSells.Contains(__instance.Item.Id))
                 {
-                    TooltipController.ClearTooltip();
+                    TooltipContext.ClearTooltip();
                     HoverItemController.ClearHoverItem();
                     return runOriginalMethod;
                 }
