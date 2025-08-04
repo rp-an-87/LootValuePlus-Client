@@ -36,11 +36,6 @@ namespace LootValuePlus
         }
 
 
-        private static void ValidateJson(string path, string json)
-        {
-
-        }
-
 
         public static async Task<string> PostJsonAsync(string path, string json)
         {
@@ -53,7 +48,6 @@ namespace LootValuePlus
             }
 
             string @string = Encoding.UTF8.GetString(bytes2);
-            ValidateJson(path, @string);
             return @string;
         }
 
@@ -67,7 +61,6 @@ namespace LootValuePlus
             }
 
             string @string = Encoding.UTF8.GetString(bytes2);
-            ValidateJson(path, @string);
             return @string;
         }
 
