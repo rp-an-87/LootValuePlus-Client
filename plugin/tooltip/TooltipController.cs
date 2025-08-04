@@ -262,23 +262,6 @@ namespace LootValuePlus
 
 					}
 
-					var canSellPinnedItems = LootValueMod.AllowQuickSellPinned.Value;
-					var canSellLockedItems = LootValueMod.AllowQuickSellLocked.Value;
-
-					if (item.PinLockState == EItemPinLockState.Pinned && !canSellPinnedItems)
-					{
-						AppendFullLineToTooltip(ref text, "(Item is pinned)", 11, "#AA3333");
-						canBeSoldToFlea = false;
-						canBeSoldToTrader = false;
-					}
-
-					if (item.PinLockState == EItemPinLockState.Locked && !canSellLockedItems)
-					{
-						AppendFullLineToTooltip(ref text, "(Item is locked)", 11, "#AA3333");
-						canBeSoldToFlea = false;
-						canBeSoldToTrader = false;
-					}
-
 				}
 
 				if (fleaPricesForWeaponMods > 0 && hasFleaMarketAvailable)
@@ -298,6 +281,23 @@ namespace LootValuePlus
 					if (!isItemEmpty)
 					{
 						AppendFullLineToTooltip(ref text, "(Item is not empty)", 11, "#AA3333");
+						canBeSoldToFlea = false;
+						canBeSoldToTrader = false;
+					}
+
+					var canSellPinnedItems = LootValueMod.AllowQuickSellPinned.Value;
+					var canSellLockedItems = LootValueMod.AllowQuickSellLocked.Value;
+
+					if (item.PinLockState == EItemPinLockState.Pinned && !canSellPinnedItems)
+					{
+						AppendFullLineToTooltip(ref text, "(Item is pinned)", 11, "#AA3333");
+						canBeSoldToFlea = false;
+						canBeSoldToTrader = false;
+					}
+
+					if (item.PinLockState == EItemPinLockState.Locked && !canSellLockedItems)
+					{
+						AppendFullLineToTooltip(ref text, "(Item is locked)", 11, "#AA3333");
 						canBeSoldToFlea = false;
 						canBeSoldToTrader = false;
 					}
@@ -337,9 +337,7 @@ namespace LootValuePlus
 					if (quickSellUsesOneButton)
 					{
 
-						bool canBeSold = (sellToFlea && canBeSoldToFlea) ||
-														 (sellToTrader && canBeSoldToTrader);
-
+						bool canBeSold = (sellToFlea && canBeSoldToFlea) || (sellToTrader && canBeSoldToTrader);
 						if (canBeSold)
 						{
 							AppendSeparator(ref text);
@@ -385,10 +383,10 @@ namespace LootValuePlus
 				bool canSellSimilarItems = FleaUtils.CanSellMultipleOfItem(item);
 				if (canSellSimilarItems)
 				{
-					// append only if more than 1 item will be sold due to the flea market action
 					var includePinned = LootValueMod.AllowQuickSellPinned.Value;
 					var includeLocked = LootValueMod.AllowQuickSellLocked.Value;
 					var amountOfItems = ItemUtils.CountItemsSimilarToItemWithinSameContainer(item, includePinned, includeLocked);
+					// append only if more than 1 item will be sold due to the flea market action
 					if (amountOfItems > 1)
 					{
 						var totalPrice = FleaUtils.GetTotalPriceOfAllSimilarItemsWithinSameContainer(item);
