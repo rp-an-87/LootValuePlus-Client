@@ -27,8 +27,18 @@ namespace LootValuePlus
 				var cachedPrice = cache[templateId];
 				if (cachedPrice.ShouldUpdate())
 				{
-					var price = await QueryTemplateIdSellingPrice(templateId);
-					cachedPrice.Update(price);
+					
+					if (LootValueMod.UpdateGlobalCacheIfAnyCacheOutOfDate.Value && LootValueMod.EnableGlobalCache.Value)
+					{
+						// refresh global cache instead
+						await FetchPricesAndUpdateCache();
+					}
+					else
+					{
+						// fetch individual price
+						var price = await QueryTemplateIdSellingPrice(templateId);
+						cachedPrice.Update(price);
+					}
 				}
 				return cachedPrice.price;
 			}
@@ -49,36 +59,48 @@ namespace LootValuePlus
 				return null;
 			}
 
-			var templateIdsInCache = templateIds.Where(cache.ContainsKey);
-			// Globals.logger.LogInfo($"Templates in cache: {templateIdsInCache.ToJson()}");
-
+			// everything that is not cached should be fetched
 			var templateIdsNotInCache = templateIds.Where(id => !cache.ContainsKey(id));
 			// Globals.logger.LogInfo($"Templates not in cache: {templateIdsNotInCache.ToJson()}");
 
 
+			// everything that is cached, but ttl is expired, should be refetched
+			var templateIdsInCache = templateIds.Where(cache.ContainsKey);
+			// Globals.logger.LogInfo($"Templates in cache: {templateIdsInCache.ToJson()}");
 			var templateIdsThatMustBeUpdated = templateIdsInCache.Where(id =>
 			{
 				var cachedPrice = cache[id];
 				return cachedPrice.ShouldUpdate();
 			});
+
+			// fetch all expired cache keys and non cached keys
 			var templateIdsToFetch = templateIdsThatMustBeUpdated.Concat(templateIdsNotInCache);
 			// Globals.logger.LogInfo($"Template ids to fetch: {templateIdsToFetch.ToJson()}");
 
-			// fetch all ids & update cache
-			var prices = await QueryTemplateIdSellingPrice(templateIdsToFetch);
-			prices.ExecuteForEach(price =>
+			// if we have to fetch anything, and global cache is enabled, and flag to update all is enabled, we do that instead
+			if (templateIdsToFetch.Any() && LootValueMod.UpdateGlobalCacheIfAnyCacheOutOfDate.Value && LootValueMod.EnableGlobalCache.Value)
 			{
-				var templateId = price.templateId;
-				if (cache.ContainsKey(templateId))
+				// refresh global cache instead
+				await FetchPricesAndUpdateCache();
+			}
+			else
+			{
+				// fetch all ids & update cache
+				var prices = await QueryTemplateIdSellingPrice(templateIdsToFetch);
+				prices.ExecuteForEach(price =>
 				{
-					cache[templateId].Update(price.price);
-				}
-				else
-				{
-					cache[templateId] = new CachePrice(price.price);
-				}
-			});
-
+					var templateId = price.templateId;
+					if (cache.ContainsKey(templateId))
+					{
+						cache[templateId].Update(price.price);
+					}
+					else
+					{
+						cache[templateId] = new CachePrice(price.price);
+					}
+				});
+			}
+			
 			return templateIds.Select(id => cache[id].price).Sum();
 		}
 
@@ -89,6 +111,9 @@ namespace LootValuePlus
 			{
 				return;
 			}
+
+			// clear cache for previously saved stuff
+			cache.Clear();
 
 			// fetch all ids & update cache
 			// Globals.logger.LogInfo($"Getting prices");
