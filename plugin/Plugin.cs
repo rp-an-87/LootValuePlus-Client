@@ -91,12 +91,13 @@ namespace LootValuePlus
 			ShowPrices = Config.Bind("0. Item Prices", "0. Show prices when hovering item", true);
 			ShowFleaPricesInRaid = Config.Bind("0. Item Prices", "1. Show prices while in raid", true);
 			ShowFleaPriceBeforeAccess = Config.Bind("0. Item Prices", "2. Show flea prices before access to it", false);
-			ShowPricePerKgAndPerSlotInRaid = Config.Bind("0. Item Prices", "3. Show price per KG & price per slot in raid", false);
-			ShowPricePerKgAndPerSlotOutOfRaid = Config.Bind("0. Item Prices", "3.1. Show price per KG & price per slot out raid", false);
+			ShowPricePerKgAndPerSlotInRaid = Config.Bind("0. Item Prices", "3. Show price p/KG & p/slot in raid", false);
+			ShowPricePerKgAndPerSlotOutOfRaid = Config.Bind("0. Item Prices", "3.1. Show price p/KG & p/slot out of raid", false);
 			HideLowerPrice = Config.Bind("0. Item Prices", "4. Hide lower price", false);
 			HideLowerPriceInRaid = Config.Bind("0. Item Prices", "5. Hide lower price in raid", false);
 			ShowFleaMarketEligibility = Config.Bind("0. Item Prices", "6. Show if item is banned from flea market", true);
-			ShowNonVitalWeaponPartsFleaPrice = Config.Bind("0. Item Prices", "7. Show flea market price of non vital parts on weapons", false, "This will make the flea market price always appear if the mods prices are higher than the trader price");
+			ShowNonVitalWeaponPartsFleaPrice = Config.Bind("0. Item Prices", "7. Show flea market price of non vital parts on weapons", false,
+			"This will make the flea market price always appear if the mods prices are higher than the trader price");
 			ShowTotalFleaValueOfContainedItems = Config.Bind("0. Item Prices", "8. Show total value of contained items while pressing LEFT-ALT", false,
 				"If the item contains items, flea market price of all contained items will be shown when pressing alt.");
 			TotalValueOfContainedItemsOverridesKgAndSlotPrice = Config.Bind("0. Item Prices", "8.1. Override p/kg & p/slot with contained items", false,
@@ -115,17 +116,17 @@ If enabled:
 [Alt + Shift + Left Click] sells to either depending on who pays more");
 
 			SellSimilarItems = Config.Bind("1. Quick Sell", "2. Sell all similar items in one go", false, "If you sell one item and have multiple of the same, they will all be sold simultaneously.");
-			SellOnlySimilarItemsFiR = Config.Bind("1. Quick Sell", "2.1. -> Considers only FiR items", false, "If this is enabled, sell multiple will only select FiR items.");
-			AllowQuickSellPinned = Config.Bind("1. Quick Sell", "3. Allow selling Pinned items", false, "Selling all similar items will also consider pinned items.");
-			AllowQuickSellLocked = Config.Bind("1. Quick Sell", "4. Allow selling Locked items", false, "Selling all similar items will also consider locked items.");
+			SellOnlySimilarItemsFiR = Config.Bind("1. Quick Sell", "2.1. Consider only FiR items", false, "If this is enabled, sell multiple will only select FiR items.");
+			AllowQuickSellPinned = Config.Bind("1. Quick Sell", "3. Allow selling Pinned items", false, "Selling all similar items will also consider pinned items if enabled.");
+			AllowQuickSellLocked = Config.Bind("1. Quick Sell", "4. Allow selling Locked items", false, "Selling all similar items will also consider locked items if enabled.");
 			IgnoreFleaMaxOfferCount = Config.Bind("1. Quick Sell", "5. Ignore flea max offer count", false);
 			SellToTraderIfWeaponIsNonOperational = Config.Bind("1. Quick Sell", "6. Sell unusable weapons to trader", false, "Will sell all non operational weapons to the trader.");
 			SellToFleaIfWeaponIsNonOperationalAboveThreshold = Config.Bind("1. Quick Sell", "6.1 Unless profit in flea above threshold", 0, "Unless this value is higher than 0, then it will do it based on the price.");
 			SellToTraderBelowProfitThresholdEnabled = Config.Bind("1. Quick Sell", "7. Sell to trader if flea price below threshold", false);
-			SellToTraderProfitThreshold = Config.Bind("1. Quick Sell", "7.1. -> Flea market profit threshold", 0,
+			SellToTraderProfitThreshold = Config.Bind("1. Quick Sell", "7.1. Flea market profit threshold", 0,
 				"This means that if the flea market profit for this item is below this number, it will be sold to the traders instead. Useful to not clutter offers with minimal impact. If sell multiple at once is enabled, the total profit of the entire offer will be used instead.");
 			SellToTraderBelowDurabilityThresholdEnabled = Config.Bind("1. Quick Sell", "8. Sell to trader below durability threshold", false);
-			SellToTraderDurabilityThreshold = Config.Bind("1. Quick Sell", "8.1. -> Durability threshold %", 0,
+			SellToTraderDurabilityThreshold = Config.Bind("1. Quick Sell", "8.1. Durability threshold %", 0,
 				"This means that any item that is below this % of durability, will be sold to trader regardless of flea market price. This means if this value is configured at 50%, an ifak with 150/300 would be sold to the traders instead the flea market.");
 			ReducePriceInFleaForBrokenItem = Config.Bind("1. Quick Sell", "9. Reduce flea market offer relative to missing durability of item", true,
 				"This means if any item that has durability, i.e: IFAK, has 200/300 (66% durability remaining), it's flea market price will be reduced by 33%. This applies to most of things that have a durability bar.");
@@ -138,9 +139,9 @@ If enabled:
 		{
 
 			EnableGlobalCache = Config.Bind("2. Advanced", "0. Enable Global Item Cache", true, getAdvancedConfigDescription("All items are fetched on profile load and when a match ends."));
-			UpdateGlobalCacheOnFleaMarketOpen = Config.Bind("2. Advanced", "0.1. -> Fetch all prices when opening flea market", false, getAdvancedConfigDescription("Also update all prices when opening flea market."));
+			UpdateGlobalCacheOnFleaMarketOpen = Config.Bind("2. Advanced", "0.1. Fetch all prices when opening flea market", false, getAdvancedConfigDescription("Also update all prices when opening flea market."));
 			CacheTtl = Config.Bind("2. Advanced", "1. Individual Item Cache TTL", 3600, getAdvancedConfigDescription("Time to live for each individual item in the cache."));
-			UpdateGlobalCacheIfAnyCacheOutOfDate = Config.Bind("2. Advanced", "1.1. -> Update global cache if one expires", true, getAdvancedConfigDescription("If one item expires, it will update the whole cache. Requires global cache to be enabled."));
+			UpdateGlobalCacheIfAnyCacheOutOfDate = Config.Bind("2. Advanced", "1.1. Update global cache if one expires", true, getAdvancedConfigDescription("If one item expires, it will update the whole cache. Requires global cache to be enabled."));
 
 			CreateSimpleButton(
 				"2. Advanced",
