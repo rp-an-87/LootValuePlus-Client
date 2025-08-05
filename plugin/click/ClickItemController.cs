@@ -16,12 +16,12 @@ namespace LootValuePlus
     {
 
         public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
+        public static HashSet<string> itemSells = new HashSet<string>();
 
         internal class ItemViewOnClickPatch : ModulePatch
         {
             protected override MethodBase GetTargetMethod() => typeof(GridItemView).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.Public);
 
-            private static HashSet<string> itemSells = new HashSet<string>();
 
             [PatchPrefix]
             static bool Prefix(GridItemView __instance, PointerEventData.InputButton button, Vector2 position, bool doubleClick)
@@ -92,11 +92,13 @@ namespace LootValuePlus
                                     {
                                         runOriginalMethod = false;
                                         FleaUtils.SellFleaItemOrMultipleItemsIfEnabled(item);
+                                        HoverItemController.hoveredItem = null;
                                     }
                                     else
                                     {
                                         runOriginalMethod = false;
                                         TraderUtils.SellToTrader(item);
+                                        HoverItemController.hoveredItem = null;
                                     }
                                 }
                             }
@@ -106,11 +108,13 @@ namespace LootValuePlus
                                 {
                                     runOriginalMethod = false;
                                     TraderUtils.SellToTrader(item);
+                                    HoverItemController.hoveredItem = null;
                                 }
                                 else if (button == PointerEventData.InputButton.Right)
                                 {
                                     runOriginalMethod = false;
                                     FleaUtils.SellFleaItemOrMultipleItemsIfEnabled(item);
+                                    HoverItemController.hoveredItem = null;
                                 }
                             }
                         }
