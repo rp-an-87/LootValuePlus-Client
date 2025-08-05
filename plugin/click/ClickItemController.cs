@@ -29,9 +29,8 @@ namespace LootValuePlus
                 bool runOriginalMethod = true;
                 if (__instance == null || __instance.Item == null || itemSells.Contains(__instance.Item.Id))
                 {
-                    GameTooltipContext.ClearTooltip();
-                    HoverItemController.ClearHoverItem();
-                    return runOriginalMethod;
+                    TearDown();
+                    return true;
                 }
 
                 Item item = __instance.Item;
@@ -92,13 +91,13 @@ namespace LootValuePlus
                                     {
                                         runOriginalMethod = false;
                                         FleaUtils.SellFleaItemOrMultipleItemsIfEnabled(item);
-                                        HoverItemController.hoveredItem = null;
+                                        TearDown();
                                     }
                                     else
                                     {
                                         runOriginalMethod = false;
                                         TraderUtils.SellToTrader(item);
-                                        HoverItemController.hoveredItem = null;
+                                        TearDown();
                                     }
                                 }
                             }
@@ -108,15 +107,13 @@ namespace LootValuePlus
                                 {
                                     runOriginalMethod = false;
                                     TraderUtils.SellToTrader(item);
-                                    HoverItemController.hoveredItem = null;
-                                    GameTooltipContext.ClearTooltip();
+                                    TearDown();
                                 }
                                 else if (button == PointerEventData.InputButton.Right)
                                 {
                                     runOriginalMethod = false;
                                     FleaUtils.SellFleaItemOrMultipleItemsIfEnabled(item);
-                                    HoverItemController.hoveredItem = null;
-                                    GameTooltipContext.ClearTooltip();
+                                    TearDown();
                                 }
                             }
                         }
@@ -142,6 +139,14 @@ namespace LootValuePlus
 
         }
 
+        static void TearDown()
+        {
+            HoverItemController.ClearHoverItem();
+            GameTooltipContext.ClearTooltip();
+        }
+
     }
+
+
 
 }

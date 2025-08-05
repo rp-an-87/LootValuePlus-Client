@@ -39,7 +39,7 @@ namespace LootValuePlus
             static void Prefix(GridItemView __instance, PointerEventData eventData)
             {
                 ClearHoverItem();
-                TooltipController.GameTooltipContext.ClearHandler();
+                TooltipController.GameTooltipContext.ClearTooltip();
             }
 
         }
