@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using EFT.Visual;
 using HarmonyLib;
+using System;
 
 namespace LootValuePlus
 {
@@ -239,7 +240,19 @@ namespace LootValuePlus
 			return GetItemsSimilarToItemWithinSameContainer(item, includePinned, includeLocked).Count();
 		}
 
-	}
+        public static float CalculateWeightForItem(Item item)
+        {
+			if (item.StackObjectsCount > 1)
+			{
+				return item.Weight * item.StackObjectsCount;
+			}
+			else
+			{
+				// this is so we handle the base weight of equipment with extra things inside
+				return CloneItemSafely(item).TotalWeight;
+			}
+        }
+    }
 
 
 }

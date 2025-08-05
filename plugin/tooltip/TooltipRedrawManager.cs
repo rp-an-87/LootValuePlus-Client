@@ -8,13 +8,15 @@ namespace LootValuePlus
         void Update()
         {
 
-            if (HoverItemController.hoveredItem != null && LootValueMod.ShowTotalFleaValueOfContainedItems.Value)
+            if (HoverItemController.hoveredItem != null
+                && LootValueMod.ShowTotalFleaValueOfContainedItems.Value
+                && !ClickItemController.itemSells.Contains(HoverItemController.hoveredItem.Id) )
             {
                 if (Input.GetKeyDown(KeyCode.LeftAlt))
                 {
                     if (GameTooltipContext.Tooltip != null)
                     {
-                        GameTooltipContext.Tooltip.Show(text: GameTooltipContext.Text, delay: GameTooltipContext.Delay);
+                        GameTooltipContext.Tooltip?.Show(text: GameTooltipContext.Text, delay: GameTooltipContext.Delay);
                     }
                 }
 
@@ -22,7 +24,7 @@ namespace LootValuePlus
                 {
                     if (GameTooltipContext.Tooltip != null)
                     {
-                        GameTooltipContext.Tooltip.Show(text: GameTooltipContext.Text, delay: GameTooltipContext.Delay);
+                        GameTooltipContext.Tooltip?.Show(text: GameTooltipContext.Text, delay: GameTooltipContext.Delay);
                     }
                 }
             }

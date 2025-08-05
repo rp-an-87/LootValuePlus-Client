@@ -7,6 +7,7 @@ using static LootValuePlus.TooltipController;
 
 namespace LootValuePlus
 {
+    // TODO: Only display flea market price if on trader sell/buy screen
 
     internal class ItemTooltipContext
     {
@@ -21,6 +22,8 @@ namespace LootValuePlus
         public SellabilityState SellabilityState { get; }
         public DisplayPriceState DisplayPriceState { get; }
 
+        public PricePerSlotAndKgState PricePerSlotAndKgState { get; }
+
         internal ItemTooltipContext(Item item)
         {
             Item = item;
@@ -31,10 +34,9 @@ namespace LootValuePlus
             TraderState = new TraderPriceState(ItemState, item);
             PriceState = new PriceState(FleaState, TraderState);
             SellabilityState = new SellabilityState(TooltipCfg, PriceState, GameState, ItemState);
-            DisplayPriceState = new DisplayPriceState(TooltipCfg, PriceState, GameState);
+            DisplayPriceState = new DisplayPriceState(TooltipCfg, PriceState, GameState, SellabilityState);
+            PricePerSlotAndKgState = new PricePerSlotAndKgState(ItemState, TooltipCfg, TraderState, FleaState, SellabilityState);
         }
-
-        
 
     }
 
@@ -57,6 +59,54 @@ namespace LootValuePlus
         public bool PressingAlt { get; }
     }
 
+    internal class ItemState
+    {
+
+        public ItemState(Item item)
+        {
+            StackAmount = item.StackObjectsCount;
+            IsEmpty = item.IsEmpty();
+            var durability = ItemUtils.GetResourcePercentageOfItem(item);
+            MissingDurability = 100 - durability * 100;
+            var size = item.CalculateCellSize();
+            Slots = size.X * size.Y;
+            IsWeapon = ItemUtils.IsItemWeapon(item);
+            IsSoftArmorInsert = ItemUtils.IsSoftArmorInsert(item);
+            ContainsNonFleableItemsInside = FleaUtils.ContainsNonFleableItemsInside(item);
+            ShouldSellToTraderDueToPriceOrCondition = TraderUtils.ShouldSellToTraderDueToPriceOrCondition(item);
+            IsPinned = ItemUtils.IsItemPinned(item);
+            IsLocked = ItemUtils.IsItemLocked(item);
+            CanSellOnFleaMarket = item.Template.CanSellOnRagfair;
+            TotalWeight = ItemUtils.CalculateWeightForItem(item);
+        }
+
+        public float MissingDurability { get; }
+        public int UnitFleaPrice { get; }
+        public int FullPrice { get; }
+        public int StackAmount { get; }
+        public bool IsEmpty { get; }
+        public int UnitFleaPriceWithModifiers { get; }
+        public int FullPriceWithModifiers { get; }
+        public int Slots { get; }
+        public bool IsWeapon { get; }
+        public bool IsSoftArmorInsert { get; }
+        public bool ContainsNonFleableItemsInside { get; }
+        public bool ShouldSellToTraderDueToPriceOrCondition { get; set; }
+        public bool IsPinned { get; }
+        public bool IsLocked { get; }
+        public bool CanSellOnFleaMarket { get; }
+        public float TotalWeight { get; }
+
+        public bool IsStack()
+        {
+            return StackAmount > 1;
+        }
+
+        public bool IsDamaged()
+        {
+            return MissingDurability > 1.0f;
+        }
+    }
 
     internal class TooltipCfg
     {
@@ -76,15 +126,16 @@ namespace LootValuePlus
             QuickSellUsesOneButton = LootValueMod.OneButtonQuickSell.Value;
             CanSellPinnedItems = LootValueMod.AllowQuickSellPinned.Value;
             CanSellLockedItems = LootValueMod.AllowQuickSellLocked.Value;
+            ShowFleaMarketEligibility = LootValueMod.ShowFleaMarketEligibility.Value;
 
             // aggregates
             ShouldShowFleaMarketPrices = gameState.HasFleaMarketAvailable || ShowFleaPriceBeforeAccess;
-            IsViewingContainedItemsPrice = gameState.PressingAlt && ShowContainedItemFleaPrices; 
+            IsViewingContainedItemsPrice = gameState.PressingAlt && ShowContainedItemFleaPrices && ShouldShowFleaMarketPrices;
             ShowQuickSaleCommands = QuickSellEnabled && !gameState.IsInRaid;
             ShowNonVitalPartModsPrices = ShowNonVitalWeaponPartsFleaPrice && ShouldShowFleaMarketPrices && itemState.IsWeapon;
             ShouldShowPricePerKgSlot = (LootValueMod.ShowPricePerKgAndPerSlotInRaid.Value && gameState.IsInRaid)
                                         || (LootValueMod.ShowPricePerKgAndPerSlotOutOfRaid.Value && !gameState.IsInRaid);
-            ShowOverridenPricePerKgSlot = ContainedItemFleaPricesOverridesKgAndSlotPrice && ShouldShowPricePerKgSlot;
+            OverridePricePerKgSlotWithContainedItemsFleaValue = ContainedItemFleaPricesOverridesKgAndSlotPrice && ShouldShowPricePerKgSlot;
 
         }
 
@@ -101,67 +152,26 @@ namespace LootValuePlus
         public bool QuickSellUsesOneButton { get; }
         public bool CanSellPinnedItems { get; }
         public bool CanSellLockedItems { get; }
+        public bool ShowFleaMarketEligibility { get; }
         public bool ShouldShowPricePerKgSlot { get; }
         public bool ShouldShowFleaMarketPrices { get; }
         public bool IsViewingContainedItemsPrice { get; }
         public bool ShowQuickSaleCommands { get; }
         public bool ShowNonVitalPartModsPrices { get; }
-        public bool ShowOverridenPricePerKgSlot { get; }
-    }
-
-    internal class ItemState
-    {
-
-        public ItemState(Item item)
-        {
-            ItemBelongsToTraderOrFlearMarketOrMail = ItemUtils.ItemBelongsToTraderOrFleaMarketOrMail(item);
-            StackAmount = item.StackObjectsCount;
-            IsEmpty = item.IsEmpty();
-            var durability = ItemUtils.GetResourcePercentageOfItem(item);
-            MissingDurability = 100 - durability * 100;
-            var size = item.CalculateCellSize();
-            Slots = size.X * size.Y;
-            IsWeapon = ItemUtils.IsItemWeapon(item);
-            IsSoftArmorInsert = ItemUtils.IsSoftArmorInsert(item);
-            ContainsNonFleableItemsInside = FleaUtils.ContainsNonFleableItemsInside(item);
-            ShouldSellToTraderDueToPriceOrCondition = TraderUtils.ShouldSellToTraderDueToPriceOrCondition(item);
-            IsPinned = ItemUtils.IsItemPinned(item);
-            IsLocked = ItemUtils.IsItemLocked(item);
-            CanSellOnFleaMarket = item.Template.CanSellOnRagfair;
-        }
-
-        public float MissingDurability { get; }
-        public int UnitFleaPrice { get; }
-        public int FullPrice { get; }
-        public bool ItemBelongsToTraderOrFlearMarketOrMail { get; }
-        public int StackAmount { get; }
-        public bool IsEmpty { get; }
-        public int UnitFleaPriceWithModifiers { get; }
-        public int FullPriceWithModifiers { get; }
-        public int Slots { get; }
-        public bool IsWeapon { get; }
-        public bool IsSoftArmorInsert { get; }
-        public bool ContainsNonFleableItemsInside { get; }
-        public bool ShouldSellToTraderDueToPriceOrCondition { get; set; }
-        public bool IsPinned { get; }
-        public bool IsLocked { get; }
-        public bool CanSellOnFleaMarket { get; }
-
-        public bool IsStack()
-        {
-            return StackAmount > 1;
-        }
-
-        public bool IsDamaged()
-        {
-            return MissingDurability > 1.0f;
-        }
+        public bool OverridePricePerKgSlotWithContainedItemsFleaValue { get; }
     }
 
     internal class FleaPriceState
     {
-        public FleaPriceState(ItemState itemState, TooltipCfg cfg, Item item)
+
+        private readonly TooltipCfg tooltipCfg;
+        private readonly ItemState itemState;
+
+        public FleaPriceState(ItemState itemState, TooltipCfg tooltipCfg, Item item)
         {
+            this.tooltipCfg = tooltipCfg;
+            this.itemState = itemState;
+
             // unit price stuff
             UnitaryPrice = FleaUtils.GetFleaMarketUnitPrice(item);
             HasPriceInFlea = UnitaryPrice > 0;
@@ -170,21 +180,10 @@ namespace LootValuePlus
             // modifiers and stack count (i.e: final price)
             UnitaryPriceWithModifiers = FleaUtils.GetFleaMarketUnitPriceWithModifiers(item);
             FleaPriceWithModifiers = UnitaryPriceWithModifiers * itemState.StackAmount;
+            PricePerSlotWithModifiers = FleaPriceWithModifiers / itemState.Slots;
 
             var containedItems = ItemUtils.GetContainedSellableItems(item);
             PriceSumOfContainedItems = containedItems.Select(ci => FleaUtils.GetFleaMarketUnitPriceWithModifiers(ci) * ci.StackObjectsCount).Sum();
-
-            if (cfg.IsViewingContainedItemsPrice && cfg.ContainedItemFleaPricesOverridesKgAndSlotPrice && PriceSumOfContainedItems > 0)
-            {
-                DynamicPricePerSlotWithModifiers = PriceSumOfContainedItems / itemState.Slots;
-            }
-            else
-            {
-
-                DynamicPricePerSlotWithModifiers = FleaPriceWithModifiers / itemState.Slots;
-            }
-
-            StaticPricePerSlotWithModifiers = FleaPriceWithModifiers / itemState.Slots;
 
             if (itemState.IsWeapon)
             {
@@ -204,10 +203,55 @@ namespace LootValuePlus
         public int UnitaryPriceWithModifiers { get; }
         public int FleaPriceWithModifiers { get; }
         public bool HasPriceInFlea { get; }
-        public int DynamicPricePerSlotWithModifiers { get; }
+        public int PricePerSlotWithModifiers { get; }
         public int PriceSumOfNonVitalMods { get; }
         public int PriceSumOfContainedItems { get; }
-        public int StaticPricePerSlotWithModifiers { get; }
+
+        public bool ContainsItemsWithFleaValue()
+        {
+            return PriceSumOfContainedItems > 0;
+        }
+
+        public int GetDynamicUnitaryPrice()
+        {
+            // when viewing contained items, the unitary price is treated as the contained items.
+            if (ShouldOverrideItemPriceWithContainedItems())
+            {
+                return PriceSumOfContainedItems;
+            }
+            else
+            {
+                return UnitaryPriceWithModifiers;
+            }
+
+        }
+
+        public int GetDynamicPricePerSlotWithModifiers()
+        {
+            // when viewing contained items, the price per slot is based on the total price of contained items.
+            if (ShouldOverrideItemPriceWithContainedItems())
+            {
+                return PriceSumOfContainedItems / itemState.Slots;
+            }
+            else
+            {
+                return PricePerSlotWithModifiers;
+            }
+
+        }
+
+        public bool IsViewingContainedItems()
+        {
+            return tooltipCfg.IsViewingContainedItemsPrice
+                && ContainsItemsWithFleaValue();
+        }
+
+        private bool ShouldOverrideItemPriceWithContainedItems()
+        {
+            return IsViewingContainedItems()
+                && tooltipCfg.ContainedItemFleaPricesOverridesKgAndSlotPrice;
+        }
+
     }
 
     internal class TraderPriceState
@@ -216,12 +260,14 @@ namespace LootValuePlus
         {
             TraderOfferPrice = TraderUtils.GetBestTraderPrice(item);
             HasTraderOffer = TraderOfferPrice > 0;
-            PricePerSlot = TraderOfferPrice * itemState.Slots;
+            PricePerSlot = TraderOfferPrice / itemState.Slots;
+            UnitaryPrice = TraderOfferPrice / itemState.StackAmount;
         }
 
         public int TraderOfferPrice { get; }
         public bool HasTraderOffer { get; }
         public int PricePerSlot { get; }
+        public int UnitaryPrice { get; }
     }
 
     internal class PriceState
@@ -232,6 +278,8 @@ namespace LootValuePlus
             IsTraderPriceHigher = traderPriceState.TraderOfferPrice > fleaPriceState.FleaPriceWithModifiers;
             IsFleaPriceHigher = !IsTraderPriceHigher;
 
+            ItemsContainedHaveValue = fleaPriceState.ContainsItemsWithFleaValue();
+
             HasFleaPrice = fleaPriceState.HasPriceInFlea;
             HasTraderPrice = traderPriceState.HasTraderOffer;
             HasPrice = fleaPriceState.HasPriceInFlea || traderPriceState.HasTraderOffer;
@@ -239,6 +287,7 @@ namespace LootValuePlus
 
         public bool IsTraderPriceHigher { get; }
         public bool IsFleaPriceHigher { get; }
+        public bool ItemsContainedHaveValue { get; }
         public bool HasPrice { get; }
         public bool HasFleaPrice { get; }
         public bool HasTraderPrice { get; }
@@ -374,48 +423,53 @@ namespace LootValuePlus
     internal class DisplayPriceState
     {
 
-        public DisplayPriceState(TooltipCfg tooltipCfg, PriceState priceState, GameState gameState)
+        public DisplayPriceState(TooltipCfg tooltipCfg, PriceState priceState, GameState gameState, SellabilityState sellabilityState)
         {
+            InitDisplayPriceState(tooltipCfg, priceState, gameState);
+        }
 
-            DisplayPrice |= DisplayPriceType.FLEA;
-            DisplayPrice |= DisplayPriceType.TRADER;
+        private void InitDisplayPriceState(TooltipCfg tooltipCfg, PriceState priceState, GameState gameState)
+        {
+            MainDisplayPriceFlags |= MainDisplayPriceFlag.FLEA;
+            MainDisplayPriceFlags |= MainDisplayPriceFlag.TRADER;
 
             if (tooltipCfg.HideLowerPrice && priceState.IsFleaPriceHigher)
             {
-                DisplayPrice &= ~DisplayPriceType.TRADER;
+                MainDisplayPriceFlags &= ~MainDisplayPriceFlag.TRADER;
             }
             if (tooltipCfg.HideLowerPriceInRaid && gameState.IsInRaid && priceState.IsFleaPriceHigher)
             {
-                DisplayPrice &= ~DisplayPriceType.TRADER;
+                MainDisplayPriceFlags &= ~MainDisplayPriceFlag.TRADER;
             }
             if (!priceState.HasTraderPrice)
             {
-                DisplayPrice &= ~DisplayPriceType.TRADER;
+                MainDisplayPriceFlags &= ~MainDisplayPriceFlag.TRADER;
             }
 
             if (tooltipCfg.HideLowerPrice && priceState.IsTraderPriceHigher)
             {
-                DisplayPrice &= ~DisplayPriceType.FLEA;
+                MainDisplayPriceFlags &= ~MainDisplayPriceFlag.FLEA;
             }
             if (tooltipCfg.HideLowerPriceInRaid && gameState.IsInRaid && priceState.IsTraderPriceHigher)
             {
-                DisplayPrice &= ~DisplayPriceType.FLEA;
+                MainDisplayPriceFlags &= ~MainDisplayPriceFlag.FLEA;
             }
             if (!priceState.HasFleaPrice)
             {
-                DisplayPrice &= ~DisplayPriceType.FLEA;
+                MainDisplayPriceFlags &= ~MainDisplayPriceFlag.FLEA;
             }
             if (!tooltipCfg.ShouldShowFleaMarketPrices)
             {
-                DisplayPrice &= ~DisplayPriceType.FLEA;
+                MainDisplayPriceFlags &= ~MainDisplayPriceFlag.FLEA;
             }
-
         }
 
-        public DisplayPriceType DisplayPrice { get; }
+
+
+        public MainDisplayPriceFlag MainDisplayPriceFlags { get; private set; }
 
         [Flags]
-        internal enum DisplayPriceType
+        internal enum MainDisplayPriceFlag
         {
             NONE = 0,
             TRADER = 1 << 0,
@@ -423,11 +477,75 @@ namespace LootValuePlus
         }
 
 
-        public bool CanDisplay(DisplayPriceType type)
+
+
+        public bool CanDisplay(MainDisplayPriceFlag flag)
         {
-            return DisplayPrice.HasFlag(type);
+            return MainDisplayPriceFlags.HasFlag(flag);
         }
 
+
+    }
+
+    internal class PricePerSlotAndKgState
+    {
+        public int PricePerSlot { get; }
+        private int UnitaryPrice { get; }
+        public int PricePerKg { get; }
+
+        internal PricePerSlotAndKgState(ItemState itemState, TooltipCfg tooltipCfg, TraderPriceState traderState, FleaPriceState fleaState, SellabilityState sellabilityState)
+        {
+            var displayPrice = InitPricePerSlotDisplayPrice(tooltipCfg, fleaState, sellabilityState);
+            if (displayPrice == PricePerSlotDisplay.TRADER)
+            {
+                PricePerSlot = traderState.PricePerSlot;
+                UnitaryPrice = traderState.UnitaryPrice;
+            }
+            else
+            {
+
+                // use the dynamic one as this gets replaced by the contained items if the options match
+                PricePerSlot = fleaState.GetDynamicPricePerSlotWithModifiers();
+                UnitaryPrice = fleaState.GetDynamicUnitaryPrice();
+            }
+
+            PricePerKg = (int)(UnitaryPrice * itemState.StackAmount / itemState.TotalWeight);
+            if (itemState.TotalWeight.ApproxEquals(0.0f))
+            {
+                PricePerKg = 0;
+            }
+
+        }
+
+        internal enum PricePerSlotDisplay
+        {
+            TRADER,
+            FLEA
+        }
+
+        private PricePerSlotDisplay InitPricePerSlotDisplayPrice(TooltipCfg tooltipCfg, FleaPriceState fleaState, SellabilityState sellabilityState)
+        {
+
+            PricePerSlotDisplay selected;
+            if (sellabilityState.FleaBuys())
+            {
+                selected = PricePerSlotDisplay.FLEA;
+            }
+            else
+            {
+                selected = PricePerSlotDisplay.TRADER;
+            }
+
+            // If viewing contained item flea prices, always display p/slot and p/kg of contained items value, if feature override is enabled.
+            if (tooltipCfg.OverridePricePerKgSlotWithContainedItemsFleaValue
+                && fleaState.IsViewingContainedItems())
+            {
+                selected = PricePerSlotDisplay.FLEA;
+            }
+
+            return selected;
+
+        }
 
     }
 
@@ -441,7 +559,7 @@ namespace LootValuePlus
         {
             Ctx = new ItemTooltipContext(item);
         }
-        
+
         public static bool ShouldModifyTooltipForItem(Item item)
         {
             if (item == null || GameTooltipContext.Tooltip == null)
@@ -453,6 +571,12 @@ namespace LootValuePlus
             if (!ScreenChangeController.CanShowItemPriceTooltipsOnCurrentScreen())
                 return false;
 
+            if (ItemUtils.ItemBelongsToTraderOrFleaMarketOrMail(item))
+                return false;
+
+            if (ClickItemController.itemSells.Contains(item?.Id))
+                return false;
+            
             return true;
         }
 
@@ -464,116 +588,16 @@ namespace LootValuePlus
 
             HandleFleaMarketAvailabilityMessage(ref text);
             HandleSellToTraderInsteadMessage(ref text);
-            HandleItemFleaAndTraderPrices(ref text);
-            HandleNonVitalAttachmentPrices(ref text);
-            HandleContainedItemsPrices(ref text);
+            HandleItemFleaAndTraderPricesSection(ref text);
+            HandleNonVitalAttachmentPricesMessage(ref text);
+            HandleContainedItemsPricesMessage(ref text);
             HandleContainsBannedItemsMessage(ref text);
-            HandleOutOfRaidPointerMessages(ref text);
-
-
-
-
-            /* var shouldShowFleaMarketEligibility = LootValueMod.ShowFleaMarketEligibility.Value;
-            if (shouldShowFleaMarketEligibility && !item.Template.CanSellOnRagfair)
-            {
-                AppendFullLineToTooltip(ref text, "(Item is banned from flea market)", 11, "#AA3333");
-            }
-
-            if (shouldShowPricePerKgWeight)
-            {
-                var overrideWithContained = overrideWeightAndSlotPriceWithContainedPrice && fleaPricesForContainedItems > 0 && shouldShowFleaMarketPrices;
-                var pricePerSlot = sellToTrader ? pricePerSlotTrader : pricePerSlotFlea;
-                if (overrideWithContained)
-                {
-                    pricePerSlot = pricePerSlotFlea;
-                }
-
-                var unitPrice = sellToTrader
-                    ? finalTraderPrice / stackAmount
-                    : FleaUtils.GetFleaMarketUnitPriceWithModifiers(item);
-
-                if (overrideWithContained)
-                {
-                    unitPrice = fleaPricesForContainedItems;
-                }
-
-                var pricePerWeight = (int)(unitPrice * item.StackObjectsCount / item.TotalWeight);
-                if (item.TotalWeight.ApproxEquals(0.0f))
-                {
-                    pricePerWeight = 0;
-                }
-
-                AppendSeparator(ref text);
-                StartSizeTag(ref text, 11);
-                AppendTextToToolip(ref text, $"₽ / KG\t{pricePerWeight.FormatNumber()}", "#555555");
-                if (overrideWithContained)
-                {
-                    AppendTextToToolip(ref text, "*", "#2f485b");
-                }
-                AppendNewLineToTooltipText(ref text);
-                AppendTextToToolip(ref text, $"₽ / SLOT\t{pricePerSlot.FormatNumber()}", "#555555");
-                if (overrideWithContained)
-                {
-                    AppendTextToToolip(ref text, "*", "#2f485b");
-                }
-                EndSizeTag(ref text);
-            }
-
-            if (showQuickSaleCommands && canQuickSellOnCurrentScreen)
-            {
-                if (quickSellUsesOneButton)
-                {
-
-                    bool canBeSold = (sellToFlea && canBeSoldToFlea) || (sellToTrader && canBeSoldToTrader);
-                    if (canBeSold)
-                    {
-                        AppendSeparator(ref text);
-                        AppendTextToToolip(ref text, $"Sell with Alt+Shift+Click", "#888888");
-                        if (canBeSoldToFlea && sellToFlea)
-                        {
-                            AddMultipleItemsSaleSection(ref text, item);
-                        }
-                    }
-
-                }
-                else
-                {
-                    if (canBeSoldToFlea || canBeSoldToTrader)
-                    {
-                        AppendSeparator(ref text);
-                    }
-
-                    if (canBeSoldToTrader)
-                    {
-                        AppendTextToToolip(ref text, $"Sell to Trader with Alt+Shift+Left Click", "#888888");
-                    }
-
-                    if (canBeSoldToFlea && canBeSoldToTrader)
-                    {
-                        AppendNewLineToTooltipText(ref text);
-                    }
-
-                    if (canBeSoldToFlea)
-                    {
-                        AppendTextToToolip(ref text, $"List to Flea with Alt+Shift+Right Click", "#888888");
-                        AddMultipleItemsSaleSection(ref text, item);
-                    }
-                }
-            } */
-
-
-
-
-
-
-
-
-
-
+            HandleOutOfRaidItemStateMessages(ref text);
+            HandleBannedBaseItemMessage(ref text);
+            HandlePricePerKgAndSlotSection(ref text);
+            HandleQuickSaleSection(ref text);
 
         }
-
-
 
         /* private static void AddMultipleItemsSaleSection(ref string text, Item item)
         {
@@ -594,16 +618,12 @@ namespace LootValuePlus
         } */
 
 
-
         /**
             ---> New stuff
         */
         private bool HandleEarlyExitConditions(ref string text)
         {
             if (!Ctx.TooltipCfg.ShowTooltipInRaid && Ctx.GameState.IsInRaid)
-                return true;
-
-            if (Ctx.ItemState.ItemBelongsToTraderOrFlearMarketOrMail)
                 return true;
 
             if (Ctx.ItemState.IsSoftArmorInsert)
@@ -632,17 +652,20 @@ namespace LootValuePlus
 
         private void HandleSellToTraderInsteadMessage(ref string text)
         {
+            if (Ctx.GameState.IsInRaid)
+                return;
 
-            if (!Ctx.GameState.IsInRaid
-              && Ctx.TooltipCfg.QuickSellUsesOneButton
-              && Ctx.SellabilityState.SellingToTraderDueConditional == true
-              && Ctx.SellabilityState.CanBeSoldToFlea
-              && Ctx.SellabilityState.OneClickBuyer == SellabilityState.Buyer.TRADER)
-            {
-                var reason = GetReasonForItemToBeSoldToTrader(Ctx.Item);
-                TooltipUtils.AppendFullLineToTooltip(ref text, $"(Selling to <b>Trader</b> {reason})", 11, "#AAAA33");
-            }
+            if (!Ctx.TooltipCfg.QuickSellUsesOneButton)
+                return;
 
+            if (!Ctx.SellabilityState.SellingToTraderDueConditional)
+                return;
+
+            if (Ctx.SellabilityState.OneClickBuyer != SellabilityState.Buyer.TRADER)
+                return;
+
+            var reason = GetReasonForItemToBeSoldToTrader(Ctx.Item);
+            TooltipUtils.AppendFullLineToTooltip(ref text, $"(Selling to <b>Trader</b> {reason})", 11, "#AAAA33");
         }
 
         private static string GetReasonForItemToBeSoldToTrader(Item item)
@@ -664,22 +687,22 @@ namespace LootValuePlus
         }
 
 
-        private void HandleItemFleaAndTraderPrices(ref string text)
+        private void HandleItemFleaAndTraderPricesSection(ref string text)
         {
 
-            if (Ctx.SellabilityState.IsSellable())
+            if (Ctx.PriceState.HasPrice)
             {
                 TooltipUtils.AppendSeparator(ref text, appendNewLineAfter: false);
             }
 
             // append trader price on tooltip
-            if (Ctx.DisplayPriceState.CanDisplay(DisplayPriceState.DisplayPriceType.TRADER))
+            if (Ctx.DisplayPriceState.CanDisplay(DisplayPriceState.MainDisplayPriceFlag.TRADER))
             {
                 HandleTraderPriceDisplay(ref text);
             }
 
             // append flea price on tooltip
-            if (Ctx.DisplayPriceState.CanDisplay(DisplayPriceState.DisplayPriceType.FLEA))
+            if (Ctx.DisplayPriceState.CanDisplay(DisplayPriceState.MainDisplayPriceFlag.FLEA))
             {
                 HandleFleaPriceDisplay(ref text);
             }
@@ -722,7 +745,7 @@ namespace LootValuePlus
 
             // append flea price
             var fleaBuys = Ctx.SellabilityState.FleaBuys();
-            var pricePerSlot = Ctx.FleaState.StaticPricePerSlotWithModifiers;
+            var pricePerSlot = Ctx.FleaState.PricePerSlotWithModifiers;
             var fleaPrice = Ctx.FleaState.FleaPriceWithModifiers;
 
             var fleaName = $"Flea: ";
@@ -754,7 +777,7 @@ namespace LootValuePlus
             TooltipUtils.EndSizeTag(ref text);
         }
 
-        private void HandleNonVitalAttachmentPrices(ref string text)
+        private void HandleNonVitalAttachmentPricesMessage(ref string text)
         {
             if (!Ctx.TooltipCfg.ShowNonVitalPartModsPrices)
                 return;
@@ -769,25 +792,18 @@ namespace LootValuePlus
             TooltipUtils.EndSizeTag(ref text);
         }
 
-        private void HandleContainedItemsPrices(ref string text)
+        private void HandleContainedItemsPricesMessage(ref string text)
         {
-            if (!Ctx.TooltipCfg.IsViewingContainedItemsPrice)
-                return;
-
-            if (!Ctx.TooltipCfg.ShouldShowFleaMarketPrices)
+            if (!Ctx.FleaState.IsViewingContainedItems())
                 return;
 
             var fleaPricesForContainedItems = Ctx.FleaState.PriceSumOfContainedItems;
-
-            if (fleaPricesForContainedItems == 0)
-                return;
-
             var color = SlotColoring.GetColorFromTotalValue(fleaPricesForContainedItems);
 
             TooltipUtils.AppendNewLineToTooltipText(ref text);
             TooltipUtils.StartSizeTag(ref text, 12);
             TooltipUtils.AppendTextToToolip(ref text, $"₽ {fleaPricesForContainedItems.FormatNumber()}", color);
-            if (Ctx.TooltipCfg.ShowOverridenPricePerKgSlot)
+            if (Ctx.TooltipCfg.OverridePricePerKgSlotWithContainedItemsFleaValue)
             {
                 TooltipUtils.AppendTextToToolip(ref text, "*", "#2f485b");
             }
@@ -797,13 +813,13 @@ namespace LootValuePlus
 
         private void HandleContainsBannedItemsMessage(ref string text)
         {
-            if (!Ctx.GameState.IsInRaid)
+            if (Ctx.GameState.IsInRaid)
                 return;
 
             if (Ctx.TooltipCfg.QuickSellUsesOneButton && Ctx.SellabilityState.TraderBuys())
                 return;
 
-            if (Ctx.TooltipCfg.ShouldShowFleaMarketPrices)
+            if (!Ctx.TooltipCfg.ShouldShowFleaMarketPrices)
                 return;
 
             if (!Ctx.ItemState.ContainsNonFleableItemsInside)
@@ -812,11 +828,10 @@ namespace LootValuePlus
             TooltipUtils.AppendFullLineToTooltip(ref text, "(Contains banned flea items)", 11, "#AA3333");
         }
 
-        private void HandleOutOfRaidPointerMessages(ref string text)
+        private void HandleOutOfRaidItemStateMessages(ref string text)
         {
-            if (!Ctx.GameState.IsInRaid)
+            if (Ctx.GameState.IsInRaid)
                 return;
-
 
             if (!Ctx.ItemState.IsEmpty)
             {
@@ -834,6 +849,104 @@ namespace LootValuePlus
             }
 
         }
+
+        private void HandleBannedBaseItemMessage(ref string text)
+        {
+
+            if (!Ctx.TooltipCfg.ShowFleaMarketEligibility)
+                return;
+
+            if (Ctx.ItemState.CanSellOnFleaMarket)
+                return;
+
+            TooltipUtils.AppendFullLineToTooltip(ref text, "(Item is banned from flea market)", 11, "#AA3333");
+        }
+
+        private void HandlePricePerKgAndSlotSection(ref string text)
+        {
+            if (!Ctx.TooltipCfg.ShouldShowPricePerKgSlot)
+                return;
+
+            TooltipUtils.AppendSeparator(ref text);
+            TooltipUtils.StartSizeTag(ref text, 11);
+            TooltipUtils.AppendTextToToolip(ref text, $"₽ / KG\t{Ctx.PricePerSlotAndKgState.PricePerKg.FormatNumber()}", "#555555");
+            AppendTrailingAsterixIfOverrideTrue(ref text);
+            TooltipUtils.AppendNewLineToTooltipText(ref text);
+            TooltipUtils.AppendTextToToolip(ref text, $"₽ / SLOT\t{Ctx.PricePerSlotAndKgState.PricePerSlot.FormatNumber()}", "#555555");
+            AppendTrailingAsterixIfOverrideTrue(ref text);
+            TooltipUtils.EndSizeTag(ref text);
+        }
+
+        private void AppendTrailingAsterixIfOverrideTrue(ref string text)
+        {
+            if (Ctx.TooltipCfg.OverridePricePerKgSlotWithContainedItemsFleaValue
+                && Ctx.FleaState.IsViewingContainedItems())
+            {
+                TooltipUtils.AppendTextToToolip(ref text, "*", "#2f485b");
+            }
+        }
+
+        private void HandleQuickSaleSection(ref string text)
+        {
+
+            if (!Ctx.TooltipCfg.ShowQuickSaleCommands)
+                return;
+
+            if (!Ctx.GameState.CanQuickSellOnCurrentScreen)
+                return;
+
+            if (Ctx.TooltipCfg.QuickSellUsesOneButton)
+            {
+                HandleOneButtonQuickSaleCommands(ref text);
+            }
+            else
+            {
+                HandleMultiButtonQuickSaleCommands(ref text);   
+            }
+
+        }
+
+        private void HandleOneButtonQuickSaleCommands(ref string text)
+        {
+            if (!Ctx.SellabilityState.IsSellable())
+                return;
+            
+            TooltipUtils.AppendSeparator(ref text);
+            TooltipUtils.AppendTextToToolip(ref text, $"Sell with Alt+Shift+Click", "#888888");
+            // if (canBeSoldToFlea && sellToFlea)
+            // {
+            //     AddMultipleItemsSaleSection(ref text, item);
+            // }
+        }
+
+        private void HandleMultiButtonQuickSaleCommands(ref string text)
+        {
+
+
+
+            if (Ctx.SellabilityState.IsSellable())
+            {
+                TooltipUtils.AppendSeparator(ref text);
+            }
+
+            if (Ctx.SellabilityState.CanBeSoldToTrader)
+            {
+                TooltipUtils.AppendTextToToolip(ref text, $"Sell to Trader with Alt+Shift+Left Click", "#888888");
+            }
+
+            if (Ctx.SellabilityState.CanBeSoldToTrader && Ctx.SellabilityState.CanBeSoldToFlea)
+            {
+                TooltipUtils.AppendNewLineToTooltipText(ref text);
+            }
+
+            if (Ctx.SellabilityState.CanBeSoldToFlea)
+            {
+                TooltipUtils.AppendTextToToolip(ref text, $"List to Flea with Alt+Shift+Right Click", "#888888");
+                // AddMultipleItemsSaleSection(ref text, item);
+            }
+        }
+
+    
     }
 
 
