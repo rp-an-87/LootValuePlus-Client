@@ -14,6 +14,7 @@ namespace LootValuePlus
 			public static string Text;
 			public static float Delay;
 			public static SimpleTooltip Tooltip;
+			public static ItemTooltipHandler ItemTooltipHandler;
 
 			public static void SetupTooltip(SimpleTooltip _tooltip, ref float _delay, ref string _text)
 			{
@@ -28,6 +29,19 @@ namespace LootValuePlus
 			{
 				Tooltip?.Close();
 				Tooltip = null;
+				Text = null;
+				ClearHandler();
+			}
+
+			public static void SetupHandler(ItemTooltipHandler handler)
+			{
+				ItemTooltipHandler = handler;
+			}
+
+			public static void ClearHandler()
+			{
+				ItemTooltipHandler?.TearDown();
+				ItemTooltipHandler = null;
 			}
 		}
 
@@ -50,7 +64,9 @@ namespace LootValuePlus
 				if (!ItemTooltipHandler.ShouldModifyTooltipForItem(HoverItemController.hoveredItem))
 					return;
 
-				new ItemTooltipHandler(HoverItemController.hoveredItem).handle(ref text);
+				var handler = new ItemTooltipHandler(HoverItemController.hoveredItem);
+				GameTooltipContext.SetupHandler(handler);
+				handler.Handle(ref text);
 			}
 
 

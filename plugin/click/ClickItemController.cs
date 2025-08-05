@@ -109,12 +109,14 @@ namespace LootValuePlus
                                     runOriginalMethod = false;
                                     TraderUtils.SellToTrader(item);
                                     HoverItemController.hoveredItem = null;
+                                    GameTooltipContext.ClearTooltip();
                                 }
                                 else if (button == PointerEventData.InputButton.Right)
                                 {
                                     runOriginalMethod = false;
                                     FleaUtils.SellFleaItemOrMultipleItemsIfEnabled(item);
                                     HoverItemController.hoveredItem = null;
+                                    GameTooltipContext.ClearTooltip();
                                 }
                             }
                         }

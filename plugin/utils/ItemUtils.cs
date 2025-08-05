@@ -205,7 +205,7 @@ namespace LootValuePlus
 		/**
 		* Includes original item, always, even if locked/pinned!
 		*/
-		public static IEnumerable<Item> GetItemsSimilarToItemWithinSameContainer(Item item, bool includePinnedItems = true, bool includeLockedItems = true)
+		public static IEnumerable<Item> GetItemsSimilarToItemWithinSameContainer(Item item)
 		{
 
 			if (item?.Parent?.Container == null)
@@ -217,9 +217,7 @@ namespace LootValuePlus
 
 			return itemsOfParent
 				.Where(o => item.Compare(o)) // select all same items
-				.Where(o => o.MarkedAsSpawnedInSession == item.MarkedAsSpawnedInSession) // all must have same FiR status
-				.Where(o => o == item || includePinnedItems || !IsItemPinned(o)) // if not including pinned items, we only keep non pinned items; we still keep the item itself regardless
-				.Where(o => o == item || includeLockedItems || !IsItemLocked(o)); // if not including locked items, we only keep non locked items; we still keep the item itself regardless
+				.Where(o => o.MarkedAsSpawnedInSession == item.MarkedAsSpawnedInSession); // all must have same FiR status
 		}
 
 		public static bool IsItemLocked(Item item)
@@ -235,9 +233,9 @@ namespace LootValuePlus
 		/**
 		* Includes original item!
 		*/
-		public static int CountItemsSimilarToItemWithinSameContainer(Item item, bool includePinned = true, bool includeLocked = true)
+		public static int CountItemsSimilarToItemWithinSameContainer(Item item)
 		{
-			return GetItemsSimilarToItemWithinSameContainer(item, includePinned, includeLocked).Count();
+			return GetItemsSimilarToItemWithinSameContainer(item).Count();
 		}
 
         public static float CalculateWeightForItem(Item item)

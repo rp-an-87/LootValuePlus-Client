@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using EFT.InventoryLogic;
 using SPT.Reflection.Utils;
@@ -12,17 +13,16 @@ namespace LootValuePlus
     internal class ItemTooltipContext
     {
 
-        public Item Item { get; }
-        public TooltipCfg TooltipCfg { get; }
-        public ItemState ItemState { get; }
-        public GameState GameState { get; }
-        public FleaPriceState FleaState { get; }
-        public TraderPriceState TraderState { get; }
-        public PriceState PriceState { get; }
-        public SellabilityState SellabilityState { get; }
-        public DisplayPriceState DisplayPriceState { get; }
-
-        public PricePerSlotAndKgState PricePerSlotAndKgState { get; }
+        public Item Item { get; private set; }
+        public TooltipCfg TooltipCfg { get; private set; }
+        public ItemState ItemState { get; private set; }
+        public GameState GameState { get; private set; }
+        public FleaPriceState FleaState { get; private set; }
+        public TraderPriceState TraderState { get; private set; }
+        public PriceState PriceState { get; private set; }
+        public SellabilityState SellabilityState { get; private set; }
+        public DisplayPriceState DisplayPriceState { get; private set; }
+        public PricePerSlotAndKgState PricePerSlotAndKgState { get; private set; }
 
         internal ItemTooltipContext(Item item)
         {
@@ -38,6 +38,28 @@ namespace LootValuePlus
             PricePerSlotAndKgState = new PricePerSlotAndKgState(ItemState, TooltipCfg, TraderState, FleaState, SellabilityState);
         }
 
+        internal void TearDown()
+        {
+            GameState.TearDown();
+            ItemState.TearDown();
+            TooltipCfg.TearDown();
+            FleaState.TearDown();
+            TraderState.TearDown();
+            PriceState.TearDown();
+            SellabilityState.TearDown();
+            DisplayPriceState.TearDown();
+            PricePerSlotAndKgState.TearDown();
+
+            Item = null;
+            GameState = null;
+            TooltipCfg = null;
+            FleaState = null;
+            TraderState = null;
+            PriceState = null;
+            SellabilityState = null;
+            DisplayPriceState = null;
+            PricePerSlotAndKgState = null;
+        }
     }
 
     internal class GameState
@@ -57,13 +79,21 @@ namespace LootValuePlus
         public bool CanQuickSellOnCurrentScreen { get; }
         public bool IsInRaid { get; }
         public bool PressingAlt { get; }
+
+        internal void TearDown()
+        {
+            
+        }
     }
 
     internal class ItemState
     {
 
+        private Item Item;
+
         public ItemState(Item item)
         {
+            Item = item;
             StackAmount = item.StackObjectsCount;
             IsEmpty = item.IsEmpty();
             var durability = ItemUtils.GetResourcePercentageOfItem(item);
@@ -78,6 +108,8 @@ namespace LootValuePlus
             IsLocked = ItemUtils.IsItemLocked(item);
             CanSellOnFleaMarket = item.Template.CanSellOnRagfair;
             TotalWeight = ItemUtils.CalculateWeightForItem(item);
+            CanSellMultipleOfItem = FleaUtils.CanSellMultipleOfItem(item);
+            SimilarItemsInContainer = ItemUtils.GetItemsSimilarToItemWithinSameContainer(item);
         }
 
         public float MissingDurability { get; }
@@ -96,6 +128,8 @@ namespace LootValuePlus
         public bool IsLocked { get; }
         public bool CanSellOnFleaMarket { get; }
         public float TotalWeight { get; }
+        public bool CanSellMultipleOfItem { get; }
+        private IEnumerable<Item> SimilarItemsInContainer { get; }
 
         public bool IsStack()
         {
@@ -105,6 +139,19 @@ namespace LootValuePlus
         public bool IsDamaged()
         {
             return MissingDurability > 1.0f;
+        }
+
+        public int CountSimilarItems(bool includePinned, bool includeLocked)
+        {
+            return SimilarItemsInContainer
+                .Where(o => o == Item || includePinned || !ItemUtils.IsItemPinned(o)) // if not including pinned items, we only keep non pinned items; we still keep the item itself regardless
+                .Where(o => o == Item || includeLocked || !ItemUtils.IsItemLocked(o))  // if not including locked items, we only keep non locked items; we still keep the item itself regardless
+                .Count();
+        }
+
+        internal void TearDown()
+        {
+            Item = null;
         }
     }
 
@@ -159,18 +206,23 @@ namespace LootValuePlus
         public bool ShowQuickSaleCommands { get; }
         public bool ShowNonVitalPartModsPrices { get; }
         public bool OverridePricePerKgSlotWithContainedItemsFleaValue { get; }
+
+        internal void TearDown()
+        {
+            
+        }
     }
 
     internal class FleaPriceState
     {
 
-        private readonly TooltipCfg tooltipCfg;
-        private readonly ItemState itemState;
+        private TooltipCfg TooltipCfg;
+        private ItemState ItemState;
 
         public FleaPriceState(ItemState itemState, TooltipCfg tooltipCfg, Item item)
         {
-            this.tooltipCfg = tooltipCfg;
-            this.itemState = itemState;
+            this.TooltipCfg = tooltipCfg;
+            this.ItemState = itemState;
 
             // unit price stuff
             UnitaryPrice = FleaUtils.GetFleaMarketUnitPrice(item);
@@ -195,6 +247,7 @@ namespace LootValuePlus
                 PriceSumOfNonVitalMods = 0;
             }
 
+            FleaPriceOfSimilarItems = FleaUtils.GetTotalPriceOfAllSimilarItemsWithinSameContainer(item);
 
         }
 
@@ -206,6 +259,7 @@ namespace LootValuePlus
         public int PricePerSlotWithModifiers { get; }
         public int PriceSumOfNonVitalMods { get; }
         public int PriceSumOfContainedItems { get; }
+        public int FleaPriceOfSimilarItems { get; }
 
         public bool ContainsItemsWithFleaValue()
         {
@@ -231,7 +285,7 @@ namespace LootValuePlus
             // when viewing contained items, the price per slot is based on the total price of contained items.
             if (ShouldOverrideItemPriceWithContainedItems())
             {
-                return PriceSumOfContainedItems / itemState.Slots;
+                return PriceSumOfContainedItems / ItemState.Slots;
             }
             else
             {
@@ -242,16 +296,21 @@ namespace LootValuePlus
 
         public bool IsViewingContainedItems()
         {
-            return tooltipCfg.IsViewingContainedItemsPrice
+            return TooltipCfg.IsViewingContainedItemsPrice
                 && ContainsItemsWithFleaValue();
         }
 
         private bool ShouldOverrideItemPriceWithContainedItems()
         {
             return IsViewingContainedItems()
-                && tooltipCfg.ContainedItemFleaPricesOverridesKgAndSlotPrice;
+                && TooltipCfg.ContainedItemFleaPricesOverridesKgAndSlotPrice;
         }
 
+        internal void TearDown()
+        {
+            TooltipCfg = null;
+            ItemState = null;
+        }
     }
 
     internal class TraderPriceState
@@ -268,6 +327,11 @@ namespace LootValuePlus
         public bool HasTraderOffer { get; }
         public int PricePerSlot { get; }
         public int UnitaryPrice { get; }
+
+        internal void TearDown()
+        {
+            
+        }
     }
 
     internal class PriceState
@@ -291,6 +355,11 @@ namespace LootValuePlus
         public bool HasPrice { get; }
         public bool HasFleaPrice { get; }
         public bool HasTraderPrice { get; }
+
+        internal void TearDown()
+        {
+            
+        }
     }
 
     internal class SellabilityState
@@ -418,6 +487,11 @@ namespace LootValuePlus
         {
             return OneClickBuyer == Buyer.FLEA;
         }
+
+        internal void TearDown()
+        {
+            
+        }
     }
 
     internal class DisplayPriceState
@@ -477,14 +551,15 @@ namespace LootValuePlus
         }
 
 
-
-
         public bool CanDisplay(MainDisplayPriceFlag flag)
         {
             return MainDisplayPriceFlags.HasFlag(flag);
         }
 
-
+        internal void TearDown()
+        {
+            
+        }
     }
 
     internal class PricePerSlotAndKgState
@@ -547,17 +622,26 @@ namespace LootValuePlus
 
         }
 
+        internal void TearDown()
+        {
+            
+        }
     }
 
 
 
     internal class ItemTooltipHandler
     {
-
         private readonly ItemTooltipContext Ctx;
+
         internal ItemTooltipHandler(Item item)
         {
             Ctx = new ItemTooltipContext(item);
+        }
+
+        public void TearDown()
+        {
+            Ctx.TearDown();
         }
 
         public static bool ShouldModifyTooltipForItem(Item item)
@@ -576,11 +660,11 @@ namespace LootValuePlus
 
             if (ClickItemController.itemSells.Contains(item?.Id))
                 return false;
-            
+
             return true;
         }
 
-        public void handle(ref string text)
+        public void Handle(ref string text)
         {
             var exitEarly = HandleEarlyExitConditions(ref text);
             if (exitEarly)
@@ -901,7 +985,7 @@ namespace LootValuePlus
             }
             else
             {
-                HandleMultiButtonQuickSaleCommands(ref text);   
+                HandleMultiButtonQuickSaleCommands(ref text);
             }
 
         }
@@ -910,19 +994,18 @@ namespace LootValuePlus
         {
             if (!Ctx.SellabilityState.IsSellable())
                 return;
-            
+
             TooltipUtils.AppendSeparator(ref text);
             TooltipUtils.AppendTextToToolip(ref text, $"Sell with Alt+Shift+Click", "#888888");
-            // if (canBeSoldToFlea && sellToFlea)
-            // {
-            //     AddMultipleItemsSaleSection(ref text, item);
-            // }
+
+            if (Ctx.SellabilityState.FleaBuys())
+            {
+                AddMultipleItemsSaleSection(ref text);
+            }
         }
 
         private void HandleMultiButtonQuickSaleCommands(ref string text)
         {
-
-
 
             if (Ctx.SellabilityState.IsSellable())
             {
@@ -942,11 +1025,27 @@ namespace LootValuePlus
             if (Ctx.SellabilityState.CanBeSoldToFlea)
             {
                 TooltipUtils.AppendTextToToolip(ref text, $"List to Flea with Alt+Shift+Right Click", "#888888");
-                // AddMultipleItemsSaleSection(ref text, item);
+                AddMultipleItemsSaleSection(ref text);
             }
         }
 
-    
+        private void AddMultipleItemsSaleSection(ref string text)
+        {
+            if (!Ctx.ItemState.CanSellMultipleOfItem)
+                return;
+
+            var includePinned = Ctx.TooltipCfg.CanSellPinnedItems;
+            var includeLocked = Ctx.TooltipCfg.CanSellLockedItems;
+            var amountOfItems = Ctx.ItemState.CountSimilarItems(includePinned, includeLocked);
+            if (amountOfItems <= 1)
+                return;
+
+            var totalPrice = Ctx.FleaState.FleaPriceOfSimilarItems;
+            TooltipUtils.AppendFullLineToTooltip(ref text, $"(Will list {amountOfItems} similar items in flea for ₽ {totalPrice.FormatNumber()})", 10, "#555555");
+
+        }
+
+
     }
 
 
