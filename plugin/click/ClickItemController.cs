@@ -7,6 +7,7 @@ using EFT.UI.DragAndDrop;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using SPT.Reflection.Utils;
+using static LootValuePlus.TooltipController;
 
 namespace LootValuePlus
 {
@@ -28,7 +29,7 @@ namespace LootValuePlus
                 bool runOriginalMethod = true;
                 if (__instance == null || __instance.Item == null || itemSells.Contains(__instance.Item.Id))
                 {
-                    TooltipContext.ClearTooltip();
+                    GameTooltipContext.ClearTooltip();
                     HoverItemController.ClearHoverItem();
                     return runOriginalMethod;
                 }

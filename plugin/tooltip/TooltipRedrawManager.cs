@@ -1,4 +1,5 @@
 using UnityEngine;
+using static LootValuePlus.TooltipController;
 
 namespace LootValuePlus
 {
@@ -11,17 +12,17 @@ namespace LootValuePlus
             {
                 if (Input.GetKeyDown(KeyCode.LeftAlt))
                 {
-                    if (TooltipContext.Tooltip != null)
+                    if (GameTooltipContext.Tooltip != null)
                     {
-                        TooltipContext.Tooltip.Show(text: TooltipContext.Text, delay: TooltipContext.Delay);
+                        GameTooltipContext.Tooltip.Show(text: GameTooltipContext.Text, delay: GameTooltipContext.Delay);
                     }
                 }
 
                 if (Input.GetKeyUp(KeyCode.LeftAlt))
                 {
-                    if (TooltipContext.Tooltip != null)
+                    if (GameTooltipContext.Tooltip != null)
                     {
-                        TooltipContext.Tooltip.Show(text: TooltipContext.Text, delay: TooltipContext.Delay);
+                        GameTooltipContext.Tooltip.Show(text: GameTooltipContext.Text, delay: GameTooltipContext.Delay);
                     }
                 }
             }
