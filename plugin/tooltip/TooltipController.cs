@@ -40,7 +40,7 @@ namespace LootValuePlus
 
 			public static void ClearHandler()
 			{
-				ItemTooltipHandler?.TearDown();
+				ItemTooltipHandler?.Dispose();
 				ItemTooltipHandler = null;
 			}
 		}

@@ -10,7 +10,7 @@ namespace LootValuePlus
 {
     // TODO: Only display flea market price if on trader sell/buy screen
 
-    internal class ItemTooltipContext
+    internal class ItemTooltipContext : IDisposable
     {
 
         public Item Item { get; private set; }
@@ -38,17 +38,11 @@ namespace LootValuePlus
             PricePerSlotAndKgState = new PricePerSlotAndKgState(ItemState, TooltipCfg, TraderState, FleaState, SellabilityState);
         }
 
-        internal void TearDown()
+        public void Dispose()
         {
-            GameState.TearDown();
-            ItemState.TearDown();
-            TooltipCfg.TearDown();
-            FleaState.TearDown();
-            TraderState.TearDown();
-            PriceState.TearDown();
-            SellabilityState.TearDown();
-            DisplayPriceState.TearDown();
-            PricePerSlotAndKgState.TearDown();
+            ItemState.Dispose();
+            FleaState.Dispose();
+            DisplayPriceState.Dispose();
 
             Item = null;
             GameState = null;
@@ -62,10 +56,14 @@ namespace LootValuePlus
         }
     }
 
-    internal class GameState
+    internal record GameState
     {
-
         public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
+
+        public readonly bool HasFleaMarketAvailable;
+        public readonly bool CanQuickSellOnCurrentScreen;
+        public readonly bool IsInRaid;
+        public readonly bool PressingAlt;
 
         public GameState()
         {
@@ -75,21 +73,30 @@ namespace LootValuePlus
             PressingAlt = Input.GetKey(KeyCode.LeftAlt);
         }
 
-        public bool HasFleaMarketAvailable { get; }
-        public bool CanQuickSellOnCurrentScreen { get; }
-        public bool IsInRaid { get; }
-        public bool PressingAlt { get; }
 
-        internal void TearDown()
-        {
-            
-        }
     }
 
-    internal class ItemState
+    internal class ItemState : IDisposable
     {
+        public readonly float MissingDurability;
+        public readonly int UnitFleaPrice;
+        public readonly int FullPrice;
+        public readonly int StackAmount;
+        public readonly bool IsEmpty;
+        public readonly int UnitFleaPriceWithModifiers;
+        public readonly int FullPriceWithModifiers;
+        public readonly int Slots;
+        public readonly bool IsWeapon;
+        public readonly bool IsSoftArmorInsert; public readonly bool ContainsNonFleableItemsInside;
+        public readonly bool ShouldSellToTraderDueToPriceOrCondition;
+        public readonly bool IsPinned;
+        public readonly bool IsLocked;
+        public readonly bool CanSellOnFleaMarket;
+        public readonly float TotalWeight;
+        public readonly bool CanSellMultipleOfItem;
 
         private Item Item;
+        private IEnumerable<Item> SimilarItemsInContainer;
 
         public ItemState(Item item)
         {
@@ -112,25 +119,6 @@ namespace LootValuePlus
             SimilarItemsInContainer = ItemUtils.GetItemsSimilarToItemWithinSameContainer(item);
         }
 
-        public float MissingDurability { get; }
-        public int UnitFleaPrice { get; }
-        public int FullPrice { get; }
-        public int StackAmount { get; }
-        public bool IsEmpty { get; }
-        public int UnitFleaPriceWithModifiers { get; }
-        public int FullPriceWithModifiers { get; }
-        public int Slots { get; }
-        public bool IsWeapon { get; }
-        public bool IsSoftArmorInsert { get; }
-        public bool ContainsNonFleableItemsInside { get; }
-        public bool ShouldSellToTraderDueToPriceOrCondition { get; set; }
-        public bool IsPinned { get; }
-        public bool IsLocked { get; }
-        public bool CanSellOnFleaMarket { get; }
-        public float TotalWeight { get; }
-        public bool CanSellMultipleOfItem { get; }
-        private IEnumerable<Item> SimilarItemsInContainer { get; }
-
         public bool IsStack()
         {
             return StackAmount > 1;
@@ -149,14 +137,36 @@ namespace LootValuePlus
                 .Count();
         }
 
-        internal void TearDown()
+        public void Dispose()
         {
             Item = null;
+            SimilarItemsInContainer = null;
         }
     }
 
-    internal class TooltipCfg
+    internal record TooltipCfg
     {
+
+        public readonly bool ShowTooltipInRaid;
+        public readonly bool ShouldShowPricesTooltipWhileInRaid;
+        public readonly bool HideLowerPrice;
+        public readonly bool HideLowerPriceInRaid;
+        public readonly bool ShowFleaPriceBeforeAccess;
+        public readonly bool ApplyConditionReduction;
+        public readonly bool ShowNonVitalWeaponPartsFleaPrice;
+        public readonly bool ShowContainedItemFleaPrices;
+        public readonly bool ContainedItemFleaPricesOverridesKgAndSlotPrice;
+        public readonly bool QuickSellEnabled;
+        public readonly bool QuickSellUsesOneButton;
+        public readonly bool CanSellPinnedItems;
+        public readonly bool CanSellLockedItems;
+        public readonly bool ShowFleaMarketEligibility;
+        public readonly bool ShouldShowPricePerKgSlot;
+        public readonly bool ShouldShowFleaMarketPrices;
+        public readonly bool IsViewingContainedItemsPrice;
+        public readonly bool ShowQuickSaleCommands;
+        public readonly bool ShowNonVitalPartModsPrices;
+        public readonly bool OverridePricePerKgSlotWithContainedItemsFleaValue;
 
         public TooltipCfg(GameState gameState, ItemState itemState)
         {
@@ -186,43 +196,27 @@ namespace LootValuePlus
 
         }
 
-        public bool ShowTooltipInRaid { get; }
-        public bool ShouldShowPricesTooltipWhileInRaid { get; }
-        public bool HideLowerPrice { get; }
-        public bool HideLowerPriceInRaid { get; }
-        public bool ShowFleaPriceBeforeAccess { get; }
-        public bool ApplyConditionReduction { get; }
-        public bool ShowNonVitalWeaponPartsFleaPrice { get; }
-        public bool ShowContainedItemFleaPrices { get; }
-        public bool ContainedItemFleaPricesOverridesKgAndSlotPrice { get; }
-        public bool QuickSellEnabled { get; }
-        public bool QuickSellUsesOneButton { get; }
-        public bool CanSellPinnedItems { get; }
-        public bool CanSellLockedItems { get; }
-        public bool ShowFleaMarketEligibility { get; }
-        public bool ShouldShowPricePerKgSlot { get; }
-        public bool ShouldShowFleaMarketPrices { get; }
-        public bool IsViewingContainedItemsPrice { get; }
-        public bool ShowQuickSaleCommands { get; }
-        public bool ShowNonVitalPartModsPrices { get; }
-        public bool OverridePricePerKgSlotWithContainedItemsFleaValue { get; }
-
-        internal void TearDown()
-        {
-            
-        }
     }
 
-    internal class FleaPriceState
+    internal class FleaPriceState : IDisposable
     {
+        public readonly int UnitaryPrice;
+        public readonly int StackPrice;
+        public readonly int UnitaryPriceWithModifiers;
+        public readonly int FleaPriceWithModifiers;
+        public readonly bool HasPriceInFlea;
+        public readonly int PricePerSlotWithModifiers;
+        public readonly int PriceSumOfNonVitalMods;
+        public readonly int PriceSumOfContainedItems;
+        public readonly int FleaPriceOfSimilarItems;
 
         private TooltipCfg TooltipCfg;
         private ItemState ItemState;
 
         public FleaPriceState(ItemState itemState, TooltipCfg tooltipCfg, Item item)
         {
-            this.TooltipCfg = tooltipCfg;
-            this.ItemState = itemState;
+            TooltipCfg = tooltipCfg;
+            ItemState = itemState;
 
             // unit price stuff
             UnitaryPrice = FleaUtils.GetFleaMarketUnitPrice(item);
@@ -251,15 +245,11 @@ namespace LootValuePlus
 
         }
 
-        public int UnitaryPrice { get; }
-        public int StackPrice { get; }
-        public int UnitaryPriceWithModifiers { get; }
-        public int FleaPriceWithModifiers { get; }
-        public bool HasPriceInFlea { get; }
-        public int PricePerSlotWithModifiers { get; }
-        public int PriceSumOfNonVitalMods { get; }
-        public int PriceSumOfContainedItems { get; }
-        public int FleaPriceOfSimilarItems { get; }
+
+        public bool HasPriceSumOfNonVitalMods()
+        {
+            return PriceSumOfNonVitalMods > 0;
+        }
 
         public bool ContainsItemsWithFleaValue()
         {
@@ -306,15 +296,20 @@ namespace LootValuePlus
                 && TooltipCfg.ContainedItemFleaPricesOverridesKgAndSlotPrice;
         }
 
-        internal void TearDown()
+        public void Dispose()
         {
             TooltipCfg = null;
             ItemState = null;
         }
     }
 
-    internal class TraderPriceState
+    internal record TraderPriceState
     {
+        public readonly int TraderOfferPrice;
+        public readonly bool HasTraderOffer;
+        public readonly int PricePerSlot;
+        public readonly int UnitaryPrice;
+
         public TraderPriceState(ItemState itemState, Item item)
         {
             TraderOfferPrice = TraderUtils.GetBestTraderPrice(item);
@@ -322,20 +317,17 @@ namespace LootValuePlus
             PricePerSlot = TraderOfferPrice / itemState.Slots;
             UnitaryPrice = TraderOfferPrice / itemState.StackAmount;
         }
-
-        public int TraderOfferPrice { get; }
-        public bool HasTraderOffer { get; }
-        public int PricePerSlot { get; }
-        public int UnitaryPrice { get; }
-
-        internal void TearDown()
-        {
-            
-        }
     }
 
-    internal class PriceState
+    internal record PriceState
     {
+
+        public readonly bool IsTraderPriceHigher;
+        public readonly bool IsFleaPriceHigher;
+        public readonly bool ItemsContainedHaveValue;
+        public readonly bool HasPrice;
+        public readonly bool HasFleaPrice;
+        public readonly bool HasTraderPrice;
 
         public PriceState(FleaPriceState fleaPriceState, TraderPriceState traderPriceState)
         {
@@ -348,22 +340,14 @@ namespace LootValuePlus
             HasTraderPrice = traderPriceState.HasTraderOffer;
             HasPrice = fleaPriceState.HasPriceInFlea || traderPriceState.HasTraderOffer;
         }
-
-        public bool IsTraderPriceHigher { get; }
-        public bool IsFleaPriceHigher { get; }
-        public bool ItemsContainedHaveValue { get; }
-        public bool HasPrice { get; }
-        public bool HasFleaPrice { get; }
-        public bool HasTraderPrice { get; }
-
-        internal void TearDown()
-        {
-            
-        }
     }
 
-    internal class SellabilityState
+    internal record SellabilityState
     {
+        public bool CanBeSoldToTrader { get; private set; }
+        public bool CanBeSoldToFlea { get; private set; }
+        public Buyer OneClickBuyer  { get; private set; }
+        public bool SellingToTraderDueConditional { get; private set; }
 
         public SellabilityState(TooltipCfg tooltipCfg, PriceState priceState, GameState gameState, ItemState itemState)
         {
@@ -462,12 +446,6 @@ namespace LootValuePlus
             }
         }
 
-
-        public bool CanBeSoldToTrader { get; private set; }
-        public bool CanBeSoldToFlea { get; private set; }
-        public Buyer OneClickBuyer { get; private set; }
-        public bool SellingToTraderDueConditional { get; private set; }
-
         internal enum Buyer
         {
             TRADER, FLEA
@@ -488,14 +466,12 @@ namespace LootValuePlus
             return OneClickBuyer == Buyer.FLEA;
         }
 
-        internal void TearDown()
-        {
-            
-        }
     }
 
-    internal class DisplayPriceState
+    internal record DisplayPriceState : IDisposable
     {
+
+        public MainDisplayPriceFlag MainDisplayPriceFlags { get; private set; }
 
         public DisplayPriceState(TooltipCfg tooltipCfg, PriceState priceState, GameState gameState, SellabilityState sellabilityState)
         {
@@ -538,10 +514,6 @@ namespace LootValuePlus
             }
         }
 
-
-
-        public MainDisplayPriceFlag MainDisplayPriceFlags { get; private set; }
-
         [Flags]
         internal enum MainDisplayPriceFlag
         {
@@ -556,17 +528,19 @@ namespace LootValuePlus
             return MainDisplayPriceFlags.HasFlag(flag);
         }
 
-        internal void TearDown()
+        public void Dispose()
         {
-            
+            MainDisplayPriceFlags &= ~MainDisplayPriceFlag.FLEA;
+            MainDisplayPriceFlags &= ~MainDisplayPriceFlag.TRADER;
         }
+
     }
 
-    internal class PricePerSlotAndKgState
+    internal record PricePerSlotAndKgState
     {
-        public int PricePerSlot { get; }
-        private int UnitaryPrice { get; }
-        public int PricePerKg { get; }
+        public readonly int PricePerSlot;
+        public readonly int PricePerKg;
+        private readonly int UnitaryPrice;
 
         internal PricePerSlotAndKgState(ItemState itemState, TooltipCfg tooltipCfg, TraderPriceState traderState, FleaPriceState fleaState, SellabilityState sellabilityState)
         {
@@ -578,7 +552,6 @@ namespace LootValuePlus
             }
             else
             {
-
                 // use the dynamic one as this gets replaced by the contained items if the options match
                 PricePerSlot = fleaState.GetDynamicPricePerSlotWithModifiers();
                 UnitaryPrice = fleaState.GetDynamicUnitaryPrice();
@@ -590,12 +563,6 @@ namespace LootValuePlus
                 PricePerKg = 0;
             }
 
-        }
-
-        internal enum PricePerSlotDisplay
-        {
-            TRADER,
-            FLEA
         }
 
         private PricePerSlotDisplay InitPricePerSlotDisplayPrice(TooltipCfg tooltipCfg, FleaPriceState fleaState, SellabilityState sellabilityState)
@@ -622,26 +589,29 @@ namespace LootValuePlus
 
         }
 
-        internal void TearDown()
+        internal enum PricePerSlotDisplay
         {
-            
+            TRADER,
+            FLEA
         }
+
     }
 
 
 
-    internal class ItemTooltipHandler
+    internal class ItemTooltipHandler : IDisposable
     {
-        private readonly ItemTooltipContext Ctx;
+        private ItemTooltipContext Ctx;
 
         internal ItemTooltipHandler(Item item)
         {
             Ctx = new ItemTooltipContext(item);
         }
 
-        public void TearDown()
+        public void Dispose()
         {
-            Ctx.TearDown();
+            Ctx.Dispose();
+            Ctx = null;
         }
 
         public static bool ShouldModifyTooltipForItem(Item item)
@@ -683,28 +653,6 @@ namespace LootValuePlus
 
         }
 
-        /* private static void AddMultipleItemsSaleSection(ref string text, Item item)
-        {
-            bool canSellSimilarItems = FleaUtils.CanSellMultipleOfItem(item);
-            if (canSellSimilarItems)
-            {
-                var includePinned = LootValueMod.AllowQuickSellPinned.Value;
-                var includeLocked = LootValueMod.AllowQuickSellLocked.Value;
-                var amountOfItems = ItemUtils.CountItemsSimilarToItemWithinSameContainer(item, includePinned, includeLocked);
-                // append only if more than 1 item will be sold due to the flea market action
-                if (amountOfItems > 1)
-                {
-                    var totalPrice = FleaUtils.GetTotalPriceOfAllSimilarItemsWithinSameContainer(item);
-                    AppendFullLineToTooltip(ref text, $"(Will list {amountOfItems} similar items in flea for ₽ {totalPrice.FormatNumber()})", 10, "#555555");
-                }
-
-            }
-        } */
-
-
-        /**
-            ---> New stuff
-        */
         private bool HandleEarlyExitConditions(ref string text)
         {
             if (!Ctx.TooltipCfg.ShowTooltipInRaid && Ctx.GameState.IsInRaid)
@@ -864,6 +812,9 @@ namespace LootValuePlus
         private void HandleNonVitalAttachmentPricesMessage(ref string text)
         {
             if (!Ctx.TooltipCfg.ShowNonVitalPartModsPrices)
+                return;
+
+            if (!Ctx.FleaState.HasPriceSumOfNonVitalMods())
                 return;
 
             var priceSum = Ctx.FleaState.PriceSumOfNonVitalMods;
