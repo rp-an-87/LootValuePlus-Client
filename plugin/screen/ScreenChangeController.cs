@@ -26,7 +26,8 @@ namespace LootValuePlus
         {
             if (CurrentScreen == EEftScreenType.EditBuild
                 || CurrentScreen == EEftScreenType.WeaponModding
-                || CurrentScreen == EEftScreenType.HealthTreatment)
+                || CurrentScreen == EEftScreenType.HealthTreatment
+                || CurrentScreen == EEftScreenType.BattleUI)
             {
                 return false;
             }
@@ -37,6 +38,7 @@ namespace LootValuePlus
         public static bool IsOnInsuranceScreen() {
             return CurrentScreen == EEftScreenType.Insurance;
         }
+
 
         internal class ScreenTypePatch : ModulePatch
         {
@@ -53,6 +55,7 @@ namespace LootValuePlus
             static void Prefix(EEftScreenType eftScreenType)
             {
                 CurrentScreen = eftScreenType;
+                // Globals.logger.LogInfo($"Screen change: {eftScreenType}");
             }
         }
 

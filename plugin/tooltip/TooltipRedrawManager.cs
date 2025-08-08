@@ -1,4 +1,5 @@
 using UnityEngine;
+using static LootValuePlus.TooltipController;
 
 namespace LootValuePlus
 {
@@ -6,26 +7,27 @@ namespace LootValuePlus
     {
         void Update()
         {
+            if (HoverItemController.hoveredItem == null)
+                return;
 
-            if (HoverItemController.hoveredItem != null && LootValueMod.ShowTotalFleaValueOfContainedItems.Value)
+            if (!LootValueMod.ShowTotalFleaValueOfContainedItems.Value)
+                return;
+
+            if (ClickItemController.itemSells.Contains(HoverItemController.hoveredItem.Id))
+                return;
+
+            if (!ScreenChangeController.CanShowItemPriceTooltipsOnCurrentScreen())
+                return;
+
+
+            if (Input.GetKeyDown(KeyCode.LeftAlt) || Input.GetKeyUp(KeyCode.LeftAlt))
             {
-                if (Input.GetKeyDown(KeyCode.LeftAlt))
+                if (GameTooltipContext.Tooltip != null)
                 {
-                    if (TooltipContext.Tooltip != null)
-                    {
-                        TooltipContext.Tooltip.Show(text: TooltipContext.Text, delay: TooltipContext.Delay);
-                    }
-                }
-
-                if (Input.GetKeyUp(KeyCode.LeftAlt))
-                {
-                    if (TooltipContext.Tooltip != null)
-                    {
-                        TooltipContext.Tooltip.Show(text: TooltipContext.Text, delay: TooltipContext.Delay);
-                    }
+                    GameTooltipContext.Tooltip?.Show(text: GameTooltipContext.Text, delay: GameTooltipContext.Delay);
                 }
             }
-            
+
         }
     }
 }
