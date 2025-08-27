@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using EFT.UI;
 using EFT.UI.Screens;
 using SPT.Reflection.Patching;
@@ -35,7 +36,8 @@ namespace LootValuePlus
             return true;
         }
 
-        public static bool IsOnInsuranceScreen() {
+        public static bool IsOnInsuranceScreen()
+        {
             return CurrentScreen == EEftScreenType.Insurance;
         }
 
@@ -54,8 +56,21 @@ namespace LootValuePlus
             [PatchPrefix]
             static void Prefix(EEftScreenType eftScreenType)
             {
+
+                var globalCacheFleaMarketRefresh = LootValueMod.EnableGlobalCache.Value && LootValueMod.UpdateGlobalCacheOnFleaMarketOpen.Value;
+                var newScreenIsFleaMarket = eftScreenType == EEftScreenType.FleaMarket && CurrentScreen != EEftScreenType.FleaMarket;
+
+                if (globalCacheFleaMarketRefresh && newScreenIsFleaMarket)
+                {
+                    Task.Run(() => FleaPriceCache.FetchPricesAndUpdateCache());
+                }
+
                 CurrentScreen = eftScreenType;
+
+                HoverItemController.ClearHoverItem();
+                TooltipController.GameTooltipContext.ClearTooltip();
                 // Globals.logger.LogInfo($"Screen change: {eftScreenType}");
+
             }
         }
 
