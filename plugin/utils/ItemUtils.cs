@@ -238,17 +238,10 @@ namespace LootValuePlus
 			return GetItemsSimilarToItemWithinSameContainer(item).Count();
 		}
 
-        public static float CalculateWeightForItem(Item item)
+        public static float GetTemplateWeight(Item item)
         {
-			if (item.StackObjectsCount > 1)
-			{
-				return item.Weight * item.StackObjectsCount;
-			}
-			else
-			{
-				// this is so we handle the base weight of equipment with extra things inside
-				return CloneItemSafely(item).TotalWeight;
-			}
+			// this is so we handle the base weight of equipment with extra things inside
+			return CloneItemSafely(item).TotalWeight / Math.Max(item.StackObjectsCount, 1);
         }
     }
 
