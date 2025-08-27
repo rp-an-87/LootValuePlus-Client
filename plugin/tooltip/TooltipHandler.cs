@@ -79,12 +79,8 @@ namespace LootValuePlus
     internal class ItemState : IDisposable
     {
         public readonly float MissingDurability;
-        public readonly int UnitFleaPrice;
-        public readonly int FullPrice;
         public readonly int StackAmount;
         public readonly bool IsEmpty;
-        public readonly int UnitFleaPriceWithModifiers;
-        public readonly int FullPriceWithModifiers;
         public readonly int Slots;
         public readonly bool IsWeapon;
         public readonly bool IsSoftArmorInsert; public readonly bool ContainsNonFleableItemsInside;
@@ -92,7 +88,8 @@ namespace LootValuePlus
         public readonly bool IsPinned;
         public readonly bool IsLocked;
         public readonly bool CanSellOnFleaMarket;
-        public readonly float TotalWeight;
+        public readonly float TemplateWeight;
+        public readonly float CurrentTotalWeight;
         public readonly bool CanSellMultipleOfItem;
 
         private Item Item;
@@ -114,7 +111,8 @@ namespace LootValuePlus
             IsPinned = ItemUtils.IsItemPinned(item);
             IsLocked = ItemUtils.IsItemLocked(item);
             CanSellOnFleaMarket = item.Template.CanSellOnRagfair;
-            TotalWeight = ItemUtils.CalculateWeightForItem(item);
+            TemplateWeight = ItemUtils.GetTemplateWeight(item);
+            CurrentTotalWeight = item.TotalWeight;
             CanSellMultipleOfItem = FleaUtils.CanSellMultipleOfItem(item);
             SimilarItemsInContainer = ItemUtils.GetItemsSimilarToItemWithinSameContainer(item);
         }
@@ -427,7 +425,7 @@ namespace LootValuePlus
             }
 
             var shouldSellToTraderDueToPriceOrCondition = itemState.ShouldSellToTraderDueToPriceOrCondition;
-            if (shouldSellToTraderDueToPriceOrCondition)
+            if (shouldSellToTraderDueToPriceOrCondition && !gameState.IsInRaid)
             {
                 OneClickBuyer = Buyer.TRADER;
                 SellingToTraderDueConditional = true;
@@ -557,8 +555,19 @@ namespace LootValuePlus
                 UnitaryPrice = fleaState.GetDynamicUnitaryPrice();
             }
 
-            PricePerKg = (int)(UnitaryPrice * itemState.StackAmount / itemState.TotalWeight);
-            if (itemState.TotalWeight.ApproxEquals(0.0f))
+            float weight;
+            if (fleaState.IsViewingContainedItems()
+                && tooltipCfg.OverridePricePerKgSlotWithContainedItemsFleaValue)
+            {
+                weight = itemState.CurrentTotalWeight;
+            }
+            else
+            {
+                weight = itemState.TemplateWeight;
+            }
+
+            PricePerKg = (int) (UnitaryPrice / weight);
+            if (itemState.CurrentTotalWeight.ApproxEquals(0.0f))
             {
                 PricePerKg = 0;
             }
