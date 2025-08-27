@@ -51,10 +51,11 @@ namespace LootValuePlus
 
 			if (!price.HasValue)
 			{
+				Globals.LogDebug($"Item {item.TemplateId} had no flea value.");
 				return 0;
 			}
 
-			return (int)price.Value;
+			return (int) price.Value;
 		}
 
 		public static int GetFleaMarketUnitPrice(Item item)
