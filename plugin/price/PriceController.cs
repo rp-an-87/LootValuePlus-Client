@@ -52,7 +52,7 @@ namespace LootValuePlus
 
         }
 
-        internal class FleaMarketOpenPatch : ModulePatch
+        /* internal class FleaMarketOpenPatch : ModulePatch
         {
 
             protected override MethodBase GetTargetMethod()
@@ -73,7 +73,7 @@ namespace LootValuePlus
                 }
             }
 
-        }
+        } */
 
     }
 

@@ -37,8 +37,7 @@ namespace LootValuePlus
 			new ScreenChangeController.ScreenTypePatch().Enable();
 			new PriceController.OnGameSessionEndPatch().Enable();
 			new PriceController.ProfileSelectedPatch().Enable();
-			new PriceController.FleaMarketOpenPatch().Enable();
-			new PriceController.FleaMarketOpenPatch().Enable();
+			// new PriceController.FleaMarketOpenPatch().Enable();
 			new FixesController.WeaponManagerClass_method_13_Patch().Enable();
 			new FixesController.WeaponManagerClass_ValidateScopeSmoothZoomUpdate_Patch().Enable();
 
@@ -83,6 +82,7 @@ namespace LootValuePlus
 		internal static ConfigEntry<bool> UpdateGlobalCacheOnFleaMarketOpen;
 		internal static ConfigEntry<int> CacheTtl;
 		internal static ConfigEntry<bool> UpdateGlobalCacheIfAnyCacheOutOfDate;
+		internal static ConfigEntry<bool> DebugLogs;
 
 		private void SetupConfig()
 		{
@@ -142,6 +142,7 @@ If enabled:
 			UpdateGlobalCacheOnFleaMarketOpen = Config.Bind("2. Advanced", "0.1. Fetch all prices when opening flea market", false, getAdvancedConfigDescription("Also update all prices when opening flea market."));
 			CacheTtl = Config.Bind("2. Advanced", "1. Individual Item Cache TTL", 3600, getAdvancedConfigDescription("Time to live for each individual item in the cache."));
 			UpdateGlobalCacheIfAnyCacheOutOfDate = Config.Bind("2. Advanced", "1.1. Update global cache if one expires", true, getAdvancedConfigDescription("If one item expires, it will update the whole cache. Requires global cache to be enabled."));
+			DebugLogs = Config.Bind("2. Advanced", "2. Debug logs", true, getAdvancedConfigDescription("Special logs as INFO messages on console."));
 
 			CreateSimpleButton(
 				"2. Advanced",
@@ -238,6 +239,14 @@ If enabled:
 		{
 			bool? inRaid = Singleton<AbstractGame>.Instance?.InRaid;
 			return inRaid.HasValue && inRaid.Value;
+		}
+
+		public static void LogDebug(string msg)
+		{
+			if (LootValueMod.DebugLogs.Value)
+			{
+				logger.LogInfo(msg);
+			}
 		}
 
 	}

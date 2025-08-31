@@ -7,6 +7,7 @@ using EFT.UI.DragAndDrop;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using SPT.Reflection.Utils;
+using static LootValuePlus.TooltipController;
 
 namespace LootValuePlus
 {
@@ -15,12 +16,12 @@ namespace LootValuePlus
     {
 
         public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
+        public static HashSet<string> itemSells = new HashSet<string>();
 
         internal class ItemViewOnClickPatch : ModulePatch
         {
             protected override MethodBase GetTargetMethod() => typeof(GridItemView).GetMethod("OnClick", BindingFlags.Instance | BindingFlags.Public);
 
-            private static HashSet<string> itemSells = new HashSet<string>();
 
             [PatchPrefix]
             static bool Prefix(GridItemView __instance, PointerEventData.InputButton button, Vector2 position, bool doubleClick)
@@ -28,9 +29,8 @@ namespace LootValuePlus
                 bool runOriginalMethod = true;
                 if (__instance == null || __instance.Item == null || itemSells.Contains(__instance.Item.Id))
                 {
-                    TooltipContext.ClearTooltip();
-                    HoverItemController.ClearHoverItem();
-                    return runOriginalMethod;
+                    TearDown();
+                    return true;
                 }
 
                 Item item = __instance.Item;
@@ -91,11 +91,13 @@ namespace LootValuePlus
                                     {
                                         runOriginalMethod = false;
                                         FleaUtils.SellFleaItemOrMultipleItemsIfEnabled(item);
+                                        TearDown();
                                     }
                                     else
                                     {
                                         runOriginalMethod = false;
                                         TraderUtils.SellToTrader(item);
+                                        TearDown();
                                     }
                                 }
                             }
@@ -105,11 +107,13 @@ namespace LootValuePlus
                                 {
                                     runOriginalMethod = false;
                                     TraderUtils.SellToTrader(item);
+                                    TearDown();
                                 }
                                 else if (button == PointerEventData.InputButton.Right)
                                 {
                                     runOriginalMethod = false;
                                     FleaUtils.SellFleaItemOrMultipleItemsIfEnabled(item);
+                                    TearDown();
                                 }
                             }
                         }
@@ -135,6 +139,14 @@ namespace LootValuePlus
 
         }
 
+        static void TearDown()
+        {
+            HoverItemController.ClearHoverItem();
+            GameTooltipContext.ClearTooltip();
+        }
+
     }
+
+
 
 }

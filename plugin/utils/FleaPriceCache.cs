@@ -19,46 +19,62 @@ namespace LootValuePlus
 			bool fleaAvailable = Session.RagFair.Available || LootValueMod.ShowFleaPriceBeforeAccess.Value;
 			if (!fleaAvailable)
 			{
+				Globals.LogDebug($"Flea market is not available, returning null value.");
 				return null;
 			}
 
 			if (cache.ContainsKey(templateId))
 			{
+				Globals.LogDebug($"Template id {templateId} is in cache.");
 				var cachedPrice = cache[templateId];
 				if (cachedPrice.ShouldUpdate())
 				{
+					Globals.LogDebug($"Template id {templateId} has expired.");
 					if (LootValueMod.UpdateGlobalCacheIfAnyCacheOutOfDate.Value && LootValueMod.EnableGlobalCache.Value)
 					{
 						// refresh global cache instead
+						Globals.LogDebug($"Refreshing global cache.");
 						await FetchPricesAndUpdateCache();
-						return cachedPrice?.price ?? 0;
+						var price = cache[templateId]?.price ?? 0;
+						Globals.LogDebug($"Global cache refreshed, returning price of {price}.");
+						return price;
 					}
 					else
 					{
+						Globals.LogDebug($"Fetching individual price for {templateId}.");
 						// fetch individual price
 						var price = await QueryTemplateIdSellingPrice(templateId);
+						Globals.LogDebug($"Updating cache price for {templateId} on cache: {price}");
 						cachedPrice.Update(price);
 						return price;
 					}
 				}
+
+				Globals.LogDebug($"Up to date cached price for {templateId}: {cachedPrice.price}");
 				return cachedPrice.price;
 			}
 			else
 			{
+				Globals.LogDebug($"Template id {templateId} is not in cache.");
 				if (LootValueMod.UpdateGlobalCacheIfAnyCacheOutOfDate.Value && LootValueMod.EnableGlobalCache.Value)
 				{
 					// refresh global cache instead
+					Globals.LogDebug($"Refreshing global cache.");
 					await FetchPricesAndUpdateCache();
-					return cache[templateId]?.price ?? 0;
+					var price = cache[templateId]?.price ?? 0;
+					Globals.LogDebug($"Global cache refreshed, returning price of {price}.");
+					return price;
 				}
 				else
 				{
+					Globals.LogDebug($"Fetching individual price for {templateId}.");
 					var price = await QueryTemplateIdSellingPrice(templateId);
+					Globals.LogDebug($"Updating cache price for {templateId} on cache: {price}");
 					cache[templateId] = new CachePrice(price);
 					return price;
 				}
 
-				
+
 			}
 		}
 
@@ -74,7 +90,6 @@ namespace LootValuePlus
 			// everything that is not cached should be fetched
 			var templateIdsNotInCache = templateIds.Where(id => !cache.ContainsKey(id));
 			// Globals.logger.LogInfo($"Templates not in cache: {templateIdsNotInCache.ToJson()}");
-
 
 			// everything that is cached, but ttl is expired, should be refetched
 			var templateIdsInCache = templateIds.Where(cache.ContainsKey);
@@ -236,6 +251,12 @@ namespace LootValuePlus
 
 		public void Update(int price)
 		{
+			if (price == 0 && this.price > 0)
+			{
+				Globals.logger.LogInfo($"Tried to update price with a '0' when current price is {price}, ignoring price update order.");
+				return;
+			}
+
 			this.price = price;
 			lastUpdate = DateTime.Now;
 		}

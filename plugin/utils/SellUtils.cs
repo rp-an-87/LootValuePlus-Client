@@ -51,10 +51,11 @@ namespace LootValuePlus
 
 			if (!price.HasValue)
 			{
+				Globals.LogDebug($"Item {item.TemplateId} had no flea value.");
 				return 0;
 			}
 
-			return (int)price.Value;
+			return (int) price.Value;
 		}
 
 		public static int GetFleaMarketUnitPrice(Item item)
@@ -83,10 +84,8 @@ namespace LootValuePlus
 
 		public static int GetTotalPriceOfAllSimilarItemsWithinSameContainer(Item item)
 		{
-			var includePinned = LootValueMod.AllowQuickSellPinned.Value; // we wanna exclude pinned items from the total calculation if this is disabled
-			var includeLocked = LootValueMod.AllowQuickSellLocked.Value; // we wanna exclude locked items from the total calculation if this is disabled
+			var items = GetSimilarItemsForSale(item);
 			var unitPrice = GetFleaMarketUnitPriceWithModifiers(item);
-			var items = ItemUtils.GetItemsSimilarToItemWithinSameContainer(item, includePinned, includeLocked);
 			return items.Select(i => unitPrice * i.StackObjectsCount).Sum();
 		}
 
@@ -202,7 +201,6 @@ namespace LootValuePlus
 
 		public static bool CanSellMultipleOfItem(Item item)
 		{
-
 			bool sellMultipleEnabled = LootValueMod.SellSimilarItems.Value;
 			bool sellMultipleOnlyFiR = LootValueMod.SellOnlySimilarItemsFiR.Value;
 			bool isItemFindInRaid = item.MarkedAsSpawnedInSession;
@@ -230,9 +228,7 @@ namespace LootValuePlus
 				return;
 			}
 
-			var includePinned = LootValueMod.AllowQuickSellPinned.Value;
-			var includeLocked = LootValueMod.AllowQuickSellLocked.Value;
-			var similarBundledItems = ItemUtils.GetItemsSimilarToItemWithinSameContainer(item, includePinned, includeLocked);
+			var similarBundledItems = GetSimilarItemsForSale(item);
 			SellToFlea(item, similarBundledItems);
 		}
 
@@ -272,6 +268,16 @@ namespace LootValuePlus
 
 			Globals.logger.LogInfo($"Invoking Session.RagFair.AddOffer(false, '{itemIds.EnumerableToString(", ")}', ({offerRequeriment.ToPrettyJson()}), null)");
 			Session.RagFair.AddOffer(false, itemIds, [offerRequeriment], null);
+		}
+
+		private static IEnumerable<Item> GetSimilarItemsForSale(Item item)
+		{
+			var includePinned = LootValueMod.AllowQuickSellPinned.Value; // we wanna exclude pinned items from the total calculation if this is disabled
+			var includeLocked = LootValueMod.AllowQuickSellLocked.Value; // we wanna exclude locked items from the total calculation if this is disabled
+			return ItemUtils.GetItemsSimilarToItemWithinSameContainer(item)
+				.Where(o => o == item || includePinned || !ItemUtils.IsItemPinned(o)) // if not including pinned items, we only keep non pinned items; we still keep the item itself regardless
+				.Where(o => o == item || includeLocked || !ItemUtils.IsItemLocked(o)); // if not including locked items, we only keep non locked items; we still keep the item itself regardless
+
 		}
 
 
@@ -399,6 +405,8 @@ namespace LootValuePlus
 			Singleton<GUISounds>.Instance.PlayUISound(EUISoundType.TradeOperationComplete);
 		}
 
+		
+
 
 	}
 
@@ -484,6 +492,8 @@ namespace LootValuePlus
 
 			return this.IsBelowDurabilityThresholdOrBelowFleaProfitThreshold() || this.ShouldSellDueToBeingWeaponAndNonOperational();
 		}
+
+		
 
 	}
 
