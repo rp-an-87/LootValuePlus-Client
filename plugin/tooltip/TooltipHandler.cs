@@ -165,6 +165,8 @@ namespace LootValuePlus
         public readonly bool ShowQuickSaleCommands;
         public readonly bool ShowNonVitalPartModsPrices;
         public readonly bool OverridePricePerKgSlotWithContainedItemsFleaValue;
+        public readonly bool ShowMaximumSingleItemPriceWithContainedItems;
+        public readonly bool ShowBestInSlotInsteadOfBestRawPrice;
 
         public TooltipCfg(GameState gameState, ItemState itemState)
         {
@@ -177,6 +179,8 @@ namespace LootValuePlus
             ShowNonVitalWeaponPartsFleaPrice = LootValueMod.ShowNonVitalWeaponPartsFleaPrice.Value;
             ShowContainedItemFleaPrices = LootValueMod.ShowTotalFleaValueOfContainedItems.Value;
             ContainedItemFleaPricesOverridesKgAndSlotPrice = LootValueMod.TotalValueOfContainedItemsOverridesKgAndSlotPrice.Value;
+            ShowMaximumSingleItemPriceWithContainedItems = LootValueMod.ShowMaximumSingleItemPriceWithContainedItems.Value;
+            ShowBestInSlotInsteadOfBestRawPrice = LootValueMod.ShowBestInSlotInsteadOfBestRawPrice.Value;
             QuickSellEnabled = LootValueMod.EnableQuickSell.Value;
             QuickSellUsesOneButton = LootValueMod.OneButtonQuickSell.Value;
             CanSellPinnedItems = LootValueMod.AllowQuickSellPinned.Value;
@@ -207,6 +211,7 @@ namespace LootValuePlus
         public readonly int PriceSumOfNonVitalMods;
         public readonly int PriceSumOfContainedItems;
         public readonly int FleaPriceOfSimilarItems;
+        public readonly PriceName MostExpensiveContainedItem;
 
         private TooltipCfg TooltipCfg;
         private ItemState ItemState;
@@ -217,30 +222,92 @@ namespace LootValuePlus
             ItemState = itemState;
 
             // unit price stuff
-            UnitaryPrice = FleaUtils.GetFleaMarketUnitPrice(item);
-            HasPriceInFlea = UnitaryPrice > 0;
-            StackPrice = UnitaryPrice * itemState.StackAmount;
+            (
+                UnitaryPrice,
+                HasPriceInFlea,
+                StackPrice,
+                UnitaryPriceWithModifiers,
+                FleaPriceWithModifiers,
+                PricePerSlotWithModifiers
+            )
+                = SetupUnitPriceState(itemState, item);
 
-            // modifiers and stack count (i.e: final price)
-            UnitaryPriceWithModifiers = FleaUtils.GetFleaMarketUnitPriceWithModifiers(item);
-            FleaPriceWithModifiers = UnitaryPriceWithModifiers * itemState.StackAmount;
-            PricePerSlotWithModifiers = FleaPriceWithModifiers / itemState.Slots;
+            // contained items logic
+            (PriceSumOfContainedItems, MostExpensiveContainedItem) = SetupContainedItemsState(item, tooltipCfg);
 
-            var containedItems = ItemUtils.GetContainedSellableItems(item);
-            PriceSumOfContainedItems = containedItems.Select(ci => FleaUtils.GetFleaMarketUnitPriceWithModifiers(ci) * ci.StackObjectsCount).Sum();
-
-            if (itemState.IsWeapon)
-            {
-                var nonVitalMods = ItemUtils.GetWeaponNonVitalMods(item);
-                PriceSumOfNonVitalMods = FleaUtils.GetFleaValue(nonVitalMods);
-            }
-            else
-            {
-                PriceSumOfNonVitalMods = 0;
-            }
+            // weapon mod prices
+            PriceSumOfNonVitalMods = SetupWeaponState(itemState, item);
 
             FleaPriceOfSimilarItems = FleaUtils.GetTotalPriceOfAllSimilarItemsWithinSameContainer(item);
 
+        }
+
+        private static (int unitPrice, bool hasPrice, int stackPrice,
+                        int unitPriceWithMods, int fleaWithMods, int pricePerSlotWithMods)
+        SetupUnitPriceState(ItemState itemState, Item item)
+        {
+            var unitaryPrice = FleaUtils.GetFleaMarketUnitPrice(item);
+            var hasPrice = unitaryPrice > 0;
+            var stackPrice = unitaryPrice * itemState.StackAmount;
+
+            var unitaryPriceWithMods = FleaUtils.GetFleaMarketUnitPriceWithModifiers(item);
+            var fleaPriceWithMods = unitaryPriceWithMods * itemState.StackAmount;
+            var pricePerSlotWithMods = fleaPriceWithMods / itemState.Slots;
+
+            return (unitaryPrice, hasPrice, stackPrice, unitaryPriceWithMods, fleaPriceWithMods, pricePerSlotWithMods);
+        }
+
+        private static (int totalPrice, PriceName mostExpensive) SetupContainedItemsState(Item item, TooltipCfg tooltipCfg)
+        {
+            var containedItems = ItemUtils.GetContainedSellableItems(item)
+                .Select(ci =>
+                {
+                    var price = FleaUtils.GetFleaMarketUnitPriceWithModifiers(ci) * ci.StackObjectsCount;
+                    var cellSize = ci.CalculateCellSize();
+                    var size = cellSize.X * cellSize.Y;
+                    var pricePerSlot = price / size;
+
+                    return new
+                    {
+                        Item = ci,
+                        Price = price,
+                        PricePerSlot = pricePerSlot
+                    };
+                })
+                .ToList();
+
+            if (!containedItems.Any())
+                return (0, new PriceName(0, 0, "none"));
+
+            var totalPrice = containedItems.Sum(x => x.Price);
+            var mostExpensive = tooltipCfg.ShowBestInSlotInsteadOfBestRawPrice
+                ? containedItems.OrderByDescending(x => x.PricePerSlot).First()
+                : containedItems.OrderByDescending(x => x.Price).First();
+
+            return (totalPrice, new PriceName(mostExpensive.PricePerSlot, mostExpensive.Price, mostExpensive.Item.LocalizedName() ?? "Unknown"));
+        }
+
+        private static int SetupWeaponState(ItemState itemState, Item item)
+        {
+            if (!itemState.IsWeapon)
+                return 0;
+
+            var nonVitalMods = ItemUtils.GetWeaponNonVitalMods(item);
+            return FleaUtils.GetFleaValue(nonVitalMods);
+        }
+
+        internal record PriceName
+        {
+            public int PricePerSlot { get; }
+            public int Price { get; }
+            public string Name { get; }
+
+            public PriceName(int pricePerSlot, int price, string name)
+            {
+                PricePerSlot = pricePerSlot;
+                Price = price;
+                Name = name;
+            }
         }
 
 
@@ -344,7 +411,7 @@ namespace LootValuePlus
     {
         public bool CanBeSoldToTrader { get; private set; }
         public bool CanBeSoldToFlea { get; private set; }
-        public Buyer OneClickBuyer  { get; private set; }
+        public Buyer OneClickBuyer { get; private set; }
         public bool SellingToTraderDueConditional { get; private set; }
 
         public SellabilityState(TooltipCfg tooltipCfg, PriceState priceState, GameState gameState, ItemState itemState)
@@ -566,7 +633,7 @@ namespace LootValuePlus
                 weight = itemState.TemplateWeight;
             }
 
-            PricePerKg = (int) (UnitaryPrice / weight);
+            PricePerKg = (int)(UnitaryPrice / weight);
             if (itemState.CurrentTotalWeight.ApproxEquals(0.0f))
             {
                 PricePerKg = 0;
@@ -852,6 +919,28 @@ namespace LootValuePlus
                 TooltipUtils.AppendTextToToolip(ref text, "*", "#2f485b");
             }
             TooltipUtils.AppendTextToToolip(ref text, " of items inside (flea)", "#555555");
+            TooltipUtils.EndSizeTag(ref text);
+
+            HandleMostExpensiveContainedItemMessage(ref text);
+        }
+
+        private void HandleMostExpensiveContainedItemMessage(ref string text)
+        {
+            if (!Ctx.TooltipCfg.ShowMaximumSingleItemPriceWithContainedItems)
+                return;
+
+            var pricePerSlotMostExpensive = Ctx.FleaState.MostExpensiveContainedItem.PricePerSlot;
+            var priceMostExpensive = Ctx.FleaState.MostExpensiveContainedItem.Price;
+            var color = SlotColoring.GetColorFromValuePerSlots(pricePerSlotMostExpensive);
+
+            string message = " (most expensive item)";
+            if (Ctx.TooltipCfg.ShowBestInSlotInsteadOfBestRawPrice)
+                message = " (best price per slot)";
+
+            TooltipUtils.AppendNewLineToTooltipText(ref text);
+            TooltipUtils.StartSizeTag(ref text, 12);
+            TooltipUtils.AppendTextToToolip(ref text, $"₽ {priceMostExpensive.FormatNumber()}", color);
+            TooltipUtils.AppendTextToToolip(ref text, message, "#555555");
             TooltipUtils.EndSizeTag(ref text);
         }
 

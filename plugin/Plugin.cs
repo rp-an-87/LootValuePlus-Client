@@ -70,6 +70,8 @@ namespace LootValuePlus
 
 		internal static ConfigEntry<bool> ShowTotalFleaValueOfContainedItems;
 		internal static ConfigEntry<bool> TotalValueOfContainedItemsOverridesKgAndSlotPrice;
+		internal static ConfigEntry<bool> ShowMaximumSingleItemPriceWithContainedItems;
+		internal static ConfigEntry<bool> ShowBestInSlotInsteadOfBestRawPrice;
 
 		internal static ConfigEntry<bool> HideLowerPrice;
 		internal static ConfigEntry<bool> HideLowerPriceInRaid;
@@ -97,11 +99,15 @@ namespace LootValuePlus
 			HideLowerPriceInRaid = Config.Bind("0. Item Prices", "5. Hide lower price in raid", false);
 			ShowFleaMarketEligibility = Config.Bind("0. Item Prices", "6. Show if item is banned from flea market", true);
 			ShowNonVitalWeaponPartsFleaPrice = Config.Bind("0. Item Prices", "7. Show flea market price of non vital parts on weapons", false,
-			"This will make the flea market price always appear if the mods prices are higher than the trader price");
+				"This will make the flea market price always appear if the mods prices are higher than the trader price");
 			ShowTotalFleaValueOfContainedItems = Config.Bind("0. Item Prices", "8. Show total value of contained items while pressing LEFT-ALT", false,
 				"If the item contains items, flea market price of all contained items will be shown when pressing alt.");
 			TotalValueOfContainedItemsOverridesKgAndSlotPrice = Config.Bind("0. Item Prices", "8.1. Override p/kg & p/slot with contained items", false,
 				"This will also make it so if viewing contained item prices, it will reflect the price on the kg/slot calculation.");
+			ShowMaximumSingleItemPriceWithContainedItems = Config.Bind("0. Item Prices", "8.2 Show also value of most expensive contained item", false,
+				"When seeing contained items, it will also show the price of the most expensive item, painted in it's price per slot color.");
+			ShowBestInSlotInsteadOfBestRawPrice = Config.Bind("0. Item Prices", "8.2.1 Consider best price per slot as most expensive", false,
+				"Most expensive contained item will be calculated based on Price per slot instead of net price.");
 
 			// General: Quick Sell
 			EnableQuickSell = Config.Bind("1. Quick Sell", "0. Enable quick sell", true, "Sell any item(s) instantly using the key combination described in 'One button quick sell'.");
