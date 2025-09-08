@@ -935,7 +935,7 @@ namespace LootValuePlus
 
             string message = " (most expensive item)";
             if (Ctx.TooltipCfg.ShowBestInSlotInsteadOfBestRawPrice)
-                message = " (best price per slot)";
+                message = " (best by price per slot)";
 
             TooltipUtils.AppendNewLineToTooltipText(ref text);
             TooltipUtils.StartSizeTag(ref text, 12);
