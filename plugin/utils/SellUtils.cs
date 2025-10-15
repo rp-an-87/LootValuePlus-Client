@@ -8,8 +8,8 @@ using Comfort.Common;
 using EFT.InventoryLogic;
 using EFT.UI;
 // fix VVVVVVV
-using CurrencyUtil = GClass2934;
-using FleaRequirement = GClass2102;
+using CurrencyUtil = GClass3130;
+using FleaRequirement = GClass2335;
 
 namespace LootValuePlus
 {
@@ -392,7 +392,7 @@ namespace LootValuePlus
 		{
 			TraderClass tc = Session.GetTrader(bestTraderOffer.TraderId);
 
-			GClass2332.Class1936 @class = new GClass2332.Class1936();
+			GClass2570.Class2064 @class = new GClass2570.Class2064();
 			@class.source = new TaskCompletionSource<bool>();
 
 			var itemRef = new EFT.Trading.TradingItemReference
@@ -401,7 +401,7 @@ namespace LootValuePlus
 				Count = item.StackObjectsCount
 			};
 
-			Session.ConfirmSell(tc.Id, new EFT.Trading.TradingItemReference[1] { itemRef }, bestTraderOffer.Price, new Callback(@class.method_0));
+			Session.ConfirmSell(tc.Id, [itemRef], bestTraderOffer.Price, new Callback(@class.method_0));
 			Singleton<GUISounds>.Instance.PlayUISound(EUISoundType.TradeOperationComplete);
 		}
 

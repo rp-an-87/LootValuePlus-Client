@@ -16,7 +16,7 @@
     <Author>rp-87</Author>
   </PropertyGroup>
   <PropertyGroup>
-    <SptDir>C:\SPT Stuff\SPT 3113</SptDir> <!-- Change this! -->
+    <SptDir>C:\SPT Stuff\SPT 4000</SptDir> <!-- Change this! -->
     <BepInExRootDir>$(SptDir)\BepInEx</BepInExRootDir>
     <EFTManagedDir>$(SptDir)\EscapeFromTarkov_Data\Managed</EFTManagedDir>
     <ServerModProjectDir>$(ProjectDir)\..\server\LootValuePlus</ServerModProjectDir>
