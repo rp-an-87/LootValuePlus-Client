@@ -35,7 +35,7 @@ namespace LootValuePlus
         {
             protected override MethodBase GetTargetMethod()
             {
-                return typeof(Class303.Class1470).GetMethod(nameof(Class303.Class1470.method_0), BindingFlags.Instance | BindingFlags.Public);
+                return typeof(Class308).GetMethod(nameof(Class308.SetMainProfile), BindingFlags.Instance | BindingFlags.Public);
             }
 
             [PatchPrefix]
@@ -51,29 +51,6 @@ namespace LootValuePlus
             }
 
         }
-
-        /* internal class FleaMarketOpenPatch : ModulePatch
-        {
-
-            protected override MethodBase GetTargetMethod()
-            {
-                return typeof(OfferViewList).GetMethod(nameof(OfferViewList.Show), BindingFlags.Instance | BindingFlags.Public);
-            }
-
-
-            [PatchPrefix]
-            protected static void Prefix()
-            {
-                // game ended, do something here
-                if (LootValueMod.EnableGlobalCache.Value && LootValueMod.UpdateGlobalCacheOnFleaMarketOpen.Value)
-                {
-
-                    Task.Run(() => FleaPriceCache.FetchPricesAndUpdateCache());
-
-                }
-            }
-
-        } */
 
     }
 

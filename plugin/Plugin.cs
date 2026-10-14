@@ -37,8 +37,6 @@ namespace LootValuePlus
 			new ScreenChangeController.ScreenTypePatch().Enable();
 			new PriceController.OnGameSessionEndPatch().Enable();
 			new PriceController.ProfileSelectedPatch().Enable();
-			// new PriceController.FleaMarketOpenPatch().Enable();
-			new FixesController.WeaponManagerClass_method_13_Patch().Enable();
 			new FixesController.WeaponManagerClass_ValidateScopeSmoothZoomUpdate_Patch().Enable();
 
 			SlotColoring.UseDefaultColors();
