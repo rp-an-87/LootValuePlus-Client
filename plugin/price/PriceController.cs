@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using System.Threading.Tasks;
 using EFT;
@@ -35,18 +36,28 @@ namespace LootValuePlus
         {
             protected override MethodBase GetTargetMethod()
             {
-                return typeof(Class308).GetMethod(nameof(Class308.SetMainProfile), BindingFlags.Instance | BindingFlags.Public);
+                return typeof(EftClientBackendSession).GetMethod(nameof(EftClientBackendSession.SetMainProfile), BindingFlags.Instance | BindingFlags.Public);
             }
 
-            [PatchPrefix]
-            protected static void Prefix()
+            [PatchPostfix]
+            protected static void PatchPostfix()
             {
-                // game ended, do something here
+                Globals.LogDebug("Game started - updating flea price cache...");
+
                 if (LootValueMod.EnableGlobalCache.Value)
                 {
-
-                    Task.Run(() => FleaPriceCache.FetchPricesAndUpdateCache());
-
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await FleaPriceCache.FetchPricesAndUpdateCache(forceUpdate: true);
+                            Globals.LogDebug("Flea price cache updated successfully.");
+                        }
+                        catch (Exception ex)
+                        {
+                            Globals.LogDebug($"Failed to update flea price cache: {ex}");
+                        }
+                    });
                 }
             }
 

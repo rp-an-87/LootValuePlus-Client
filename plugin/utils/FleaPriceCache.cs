@@ -6,13 +6,15 @@ using SPT.Reflection.Utils;
 using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.Linq;
+using static EFT.ConnectionClient;
+using EFT;
 
 namespace LootValuePlus
 {
 	internal static class FleaPriceCache
 	{
 		public static Dictionary<string, CachePrice> cache = new Dictionary<string, CachePrice>();
-		public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
+		public static IEftSession Session => ClientAppUtils.GetClientApp().GetClientBackEndSession();
 
 		public static async Task<int?> FetchPrice(string templateId)
 		{
@@ -131,10 +133,11 @@ namespace LootValuePlus
 			return templateIds.Select(id => cache[id]?.price ?? 0).Sum();
 		}
 
-		public static async Task FetchPricesAndUpdateCache()
+		public static async Task FetchPricesAndUpdateCache(bool forceUpdate = false)
 		{
 			bool fleaAvailable = Session.RagFair.Available || LootValueMod.ShowFleaPriceBeforeAccess.Value;
-			if (!fleaAvailable)
+			Globals.LogDebug($"Flea market available: {fleaAvailable}");
+			if (!fleaAvailable && !forceUpdate)
 			{
 				return;
 			}

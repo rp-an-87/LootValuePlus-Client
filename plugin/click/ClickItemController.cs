@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using SPT.Reflection.Utils;
 using static LootValuePlus.TooltipController;
+using EFT;
 
 namespace LootValuePlus
 {
@@ -15,7 +16,7 @@ namespace LootValuePlus
     internal class ClickItemController
     {
 
-        public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
+        public static IEftSession Session => ClientAppUtils.GetClientApp().GetClientBackEndSession();
         public static HashSet<string> itemSells = new HashSet<string>();
 
         internal class ItemViewOnClickPatch : ModulePatch

@@ -3,6 +3,7 @@ using Comfort.Common;
 using EFT;
 using EFT.InventoryLogic;
 using System.Reflection;
+using EFT.Trading;
 
 namespace LootValuePlus
 {
@@ -25,18 +26,18 @@ namespace LootValuePlus
 
 	internal static class TraderClassExtensions
 	{
-		private static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
+		private static IEftSession Session => ClientAppUtils.GetClientApp().GetClientBackEndSession();
 
 		private static readonly FieldInfo SupplyDataField =
-			typeof(TraderClass).GetField("SupplyData_0", BindingFlags.Public | BindingFlags.Instance);
+			typeof(Trader).GetField("_supplyData", BindingFlags.Public | BindingFlags.Instance);
 
-		public static SupplyData GetSupplyData(this TraderClass trader) =>
+		public static SupplyData GetSupplyData(this Trader trader) =>
 			SupplyDataField.GetValue(trader) as SupplyData;
 
-		public static void SetSupplyData(this TraderClass trader, SupplyData supplyData) =>
+		public static void SetSupplyData(this Trader trader, SupplyData supplyData) =>
 			SupplyDataField.SetValue(trader, supplyData);
 
-		public static async void UpdateSupplyData(this TraderClass trader)
+		public static async void UpdateSupplyData(this Trader trader)
 		{
 			Result<SupplyData> result = await Session.GetSupplyData(trader.Id);
 

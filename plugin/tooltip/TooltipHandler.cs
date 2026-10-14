@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EFT;
 using EFT.InventoryLogic;
 using SPT.Reflection.Utils;
 using UnityEngine;
@@ -58,7 +59,7 @@ namespace LootValuePlus
 
     internal record GameState
     {
-        public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
+        public static IEftSession Session => ClientAppUtils.GetClientApp().GetClientBackEndSession();
 
         public readonly bool HasFleaMarketAvailable;
         public readonly bool CanQuickSellOnCurrentScreen;

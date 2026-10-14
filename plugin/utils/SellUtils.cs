@@ -7,17 +7,21 @@ using SPT.Reflection.Utils;
 using Comfort.Common;
 using EFT.InventoryLogic;
 using EFT.UI;
+using EFT;
+using EFT.Communications;
+using EFT.Trading;
 // fix VVVVVVV
-using CurrencyUtil = GClass3130;
-using FleaRequirement = GClass2335;
+// using CurrencyUtil = GClass3130;
+// using FleaRequirement = GClass2335;
 
 namespace LootValuePlus
 {
 
 	internal static class FleaUtils
+
 	{
 
-		public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
+		public static IEftSession Session => ClientAppUtils.GetClientApp().GetClientBackEndSession();
 
 		public static bool HasFleaSlotToSell()
 		{
@@ -117,7 +121,7 @@ namespace LootValuePlus
 			{
 
 				if (displayWarning)
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Flea market is not available yet.");
+					NotificationManager.DisplayWarningNotification("Quicksell: Flea market is not available yet.");
 
 				return false;
 			}
@@ -127,7 +131,7 @@ namespace LootValuePlus
 			{
 
 				if (displayWarning)
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item is banned from flea market.");
+					NotificationManager.DisplayWarningNotification("Quicksell: Item is banned from flea market.");
 
 				return false;
 			}
@@ -136,7 +140,7 @@ namespace LootValuePlus
 			{
 
 				if (displayWarning)
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Maximum number of flea offers reached.");
+					NotificationManager.DisplayWarningNotification("Quicksell: Maximum number of flea offers reached.");
 
 				return false;
 			}
@@ -145,7 +149,7 @@ namespace LootValuePlus
 			{
 
 				if (displayWarning)
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item is not empty.");
+					NotificationManager.DisplayWarningNotification("Quicksell: Item is not empty.");
 
 				return false;
 
@@ -155,7 +159,7 @@ namespace LootValuePlus
 			{
 
 				if (displayWarning)
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item contains banned fleamarket items.");
+					NotificationManager.DisplayWarningNotification("Quicksell: Item contains banned fleamarket items.");
 
 				return false;
 			}
@@ -164,7 +168,7 @@ namespace LootValuePlus
 			if (!item.CanSellOnRagfair)
 			{
 				if (displayWarning)
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item can't be sold right now.");
+					NotificationManager.DisplayWarningNotification("Quicksell: Item can't be sold right now.");
 
 				return false;
 			}
@@ -172,7 +176,7 @@ namespace LootValuePlus
 			if (ItemUtils.IsSoftArmorInsert(item))
 			{
 				if (displayWarning)
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item can't be removed from the armor.");
+					NotificationManager.DisplayWarningNotification("Quicksell: Item can't be removed from the armor.");
 
 				return false;
 			}
@@ -183,7 +187,7 @@ namespace LootValuePlus
 			if (item.PinLockState == EItemPinLockState.Pinned && !canSellPinnedItems)
 			{
 				if (displayWarning)
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item is pinned.");
+					NotificationManager.DisplayWarningNotification("Quicksell: Item is pinned.");
 
 				return false;
 			}
@@ -191,7 +195,7 @@ namespace LootValuePlus
 			if (item.PinLockState == EItemPinLockState.Locked && !canSellLockedItems)
 			{
 				if (displayWarning)
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item is locked.");
+					NotificationManager.DisplayWarningNotification("Quicksell: Item is locked.");
 
 				return false;
 			}
@@ -260,7 +264,7 @@ namespace LootValuePlus
 
 		private static void ApplyFleaOffer(int price, string[] itemIds)
 		{
-			var offerRequeriment = new FleaRequirement()
+			var offerRequeriment = new BarterTemplate()
 			{
 				count = price,
 				_tpl = "5449016a4bdc2d6f028b456f" //id of ruble
@@ -286,7 +290,7 @@ namespace LootValuePlus
 	internal static class TraderUtils
 	{
 
-		public static ISession Session => ClientAppUtils.GetMainApp().GetClientBackEndSession();
+		public static IEftSession Session => ClientAppUtils.GetClientApp().GetClientBackEndSession();
 
 		public static int GetBestTraderPrice(Item item)
 		{
@@ -318,7 +322,7 @@ namespace LootValuePlus
 			return bestOffer;
 		}
 
-		private static TraderOffer GetTraderOffer(Item item, TraderClass trader)
+		private static TraderOffer GetTraderOffer(Item item, Trader trader)
 		{
 			var result = trader.GetUserItemPrice(item);
 
@@ -334,7 +338,7 @@ namespace LootValuePlus
 				trader.LocalizedName,
 				result.Value.Amount,
 				CurrencyUtil.GetCurrencyCharById(result.Value.CurrencyId.Value),
-				trader.GetSupplyData().CurrencyCourses[result.Value.CurrencyId.Value],
+				trader._supplyData.CurrencyCourses[result.Value.CurrencyId.Value],
 				item.StackObjectsCount
 			) : null;
 		}
@@ -353,13 +357,13 @@ namespace LootValuePlus
 
 				if (bestTraderOffer == null)
 				{
-					NotificationManagerClass.DisplayWarningNotification("Quicksell Error: No trader will purchase this item.");
+					NotificationManager.DisplayWarningNotification("Quicksell Error: No trader will purchase this item.");
 					return;
 				}
 
 				if (item.IsNotEmpty())
 				{
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: item is not empty.");
+					NotificationManager.DisplayWarningNotification("Quicksell: item is not empty.");
 					return;
 				}
 
@@ -368,13 +372,13 @@ namespace LootValuePlus
 
 				if (item.PinLockState == EItemPinLockState.Pinned && !canSellPinnedItems)
 				{
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item is pinned.");
+					NotificationManager.DisplayWarningNotification("Quicksell: Item is pinned.");
 					return;
 				}
 
 				if (item.PinLockState == EItemPinLockState.Locked && !canSellLockedItems)
 				{
-					NotificationManagerClass.DisplayWarningNotification("Quicksell: Item is locked.");
+					NotificationManager.DisplayWarningNotification("Quicksell: Item is locked.");
 					return;
 				}
 
@@ -390,9 +394,9 @@ namespace LootValuePlus
 
 		public static void SellToTrader(Item item, TraderOffer bestTraderOffer)
 		{
-			TraderClass tc = Session.GetTrader(bestTraderOffer.TraderId);
+			Trader tc = Session.GetTrader(bestTraderOffer.TraderId);
 
-			GClass2570.Class2064 @class = new GClass2570.Class2064();
+			FenceTrader.CG_SellItems @class = new FenceTrader.CG_SellItems();
 			@class.source = new TaskCompletionSource<bool>();
 
 			var itemRef = new EFT.Trading.TradingItemReference

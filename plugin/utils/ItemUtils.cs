@@ -59,7 +59,7 @@ namespace LootValuePlus
 				var component = item.GetItemComponent<RepairKitComponent>();
 				var currentResource = component.Resource;
 				// method 0 returns max value of template
-				var maxResource = component.method_0();
+				var maxResource = component.CG_Ctor();
 				return currentResource / maxResource;
 
 			}
@@ -117,7 +117,7 @@ namespace LootValuePlus
 
 		public static bool IsSoftArmorInsert(Item item)
 		{
-			return TemplateIdToObjectMappingsClass.TypeTable[item.Template.ParentId] == typeof(BuiltInInsertsItemClass);
+			return JsonTypes.TypeTable[item.Template.ParentId] == typeof(BuiltInInserts);
 		}
 
 		public static bool IsItemWeapon(Item item)
@@ -132,7 +132,7 @@ namespace LootValuePlus
 
 		public static bool IsItemArmoredRig(Item item)
 		{
-			if (item is VestItemClass)
+			if (item is Vest)
 			{
 				return true;
 			}

@@ -6,10 +6,9 @@ using BepInEx.Logging;
 using BepInEx.Configuration;
 using Comfort.Common;
 using static LootValuePlus.Globals;
-using EFT.InventoryLogic;
 using UnityEngine;
 using System.Threading.Tasks;
-using System;
+using EFT.Trading;
 
 namespace LootValuePlus
 {
@@ -19,7 +18,7 @@ namespace LootValuePlus
 		// BepinEx
 		public const string pluginGuid = "RPAN87.LootValuePlus";
 		public const string pluginName = "LootValuePlus";
-		public const string pluginVersion = "1.0.0";
+		public const string pluginVersion = "2.0.0";
 
 		private void Awake()
 		{
@@ -37,7 +36,7 @@ namespace LootValuePlus
 			new ScreenChangeController.ScreenTypePatch().Enable();
 			new PriceController.OnGameSessionEndPatch().Enable();
 			new PriceController.ProfileSelectedPatch().Enable();
-			new FixesController.WeaponManagerClass_ValidateScopeSmoothZoomUpdate_Patch().Enable();
+			// new FixesController.WeaponManagerClass_ValidateScopeSmoothZoomUpdate_Patch().Enable();
 
 			SlotColoring.UseDefaultColors();
 			gameObject.AddComponent<TooltipRedrawManager>();
@@ -169,7 +168,7 @@ If enabled:
 				true,
 				() =>
 				{
-					Task.Run(() => FleaPriceCache.FetchPricesAndUpdateCache());
+					Task.Run(() => FleaPriceCache.FetchPricesAndUpdateCache(forceUpdate:true));
 					return "";
 				}
 			);
@@ -217,23 +216,23 @@ If enabled:
 
 	internal class TraderPatch : ModulePatch
 	{
-		protected override MethodBase GetTargetMethod() => typeof(TraderClass).GetConstructors()[0];
+		protected override MethodBase GetTargetMethod() => typeof(Trader).GetConstructors()[0];
 
 		[PatchPostfix]
-		private static void PatchPostfix(ref TraderClass __instance)
+		private static void PatchPostfix(ref Trader __instance)
 		{
 			__instance.UpdateSupplyData();
 		}
 	}
 
-	internal static class PlayerExtensions
+	/* internal static class PlayerExtensions
 	{
 		private static readonly FieldInfo InventoryControllerField =
 			typeof(Player).GetField("_inventoryController", BindingFlags.NonPublic | BindingFlags.Instance);
 
 		public static InventoryController GetInventoryController(this Player player) =>
 			InventoryControllerField.GetValue(player) as InventoryController;
-	}
+	} */
 
 	internal static class Globals
 	{
