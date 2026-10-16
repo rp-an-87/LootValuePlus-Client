@@ -148,7 +148,29 @@ namespace LootValuePlus
 		{
 			var clone = item.CloneVisibleItem();
 			clone.UnlimitedCount = false;
+			RestoreSlotContents(item, clone); // restore the slots of the original item to the clone, but not the grids
 			return clone;
+		}
+
+		// CloneVisibleItem skips ALL containers (slots and grids) when the template has HideEntrails.
+		// For armored rigs that drops the plates, so we copy back the slots only, never the grids.
+		// @author Claude
+		private static void RestoreSlotContents(Item source, Item clone)
+		{
+			if (!source.HideEntrails) return; // normal items were already cloned with their slots
+
+			if (source is not ContainerCollection src || clone is not ContainerCollection dst) return;
+
+			foreach (var srcSlot in src.Containers.OfType<Slot>())
+			{
+				var child = srcSlot.ContainedItem;
+				if (child == null) continue;
+
+				if (dst.GetContainer(srcSlot.ID) is not Slot dstSlot || dstSlot.ContainedItem != null) continue;
+
+				// Recursive: handles a plate carrier inside a rig, plates inside a carrier, and so on
+				dstSlot.AddWithoutRestrictions(CloneItemSafely(child));
+			}
 		}
 
 
@@ -238,12 +260,12 @@ namespace LootValuePlus
 			return GetItemsSimilarToItemWithinSameContainer(item).Count();
 		}
 
-        public static float GetTemplateWeight(Item item)
-        {
+		public static float GetTemplateWeight(Item item)
+		{
 			// this is so we handle the base weight of equipment with extra things inside
 			return CloneItemSafely(item).TotalWeight / Math.Max(item.StackObjectsCount, 1);
-        }
-    }
+		}
+	}
 
 
 }
