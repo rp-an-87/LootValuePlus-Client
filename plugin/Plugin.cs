@@ -74,6 +74,7 @@ namespace LootValuePlus
 		internal static ConfigEntry<bool> HideLowerPriceInRaid;
 
 		internal static ConfigEntry<bool> ReducePriceInFleaForBrokenItem;
+		internal static ConfigEntry<bool> AllowForeignCurrencyTraders;
 		internal static ConfigEntry<bool> ShowFleaMarketEligibility;
 		internal static ConfigEntry<bool> ShowNonVitalWeaponPartsFleaPrice;
 
@@ -133,7 +134,8 @@ If enabled:
 				"This means that any item that is below this % of durability, will be sold to trader regardless of flea market price. This means if this value is configured at 50%, an ifak with 150/300 would be sold to the traders instead the flea market.");
 			ReducePriceInFleaForBrokenItem = Config.Bind("1. Quick Sell", "9. Reduce flea market offer relative to missing durability of item", true,
 				"This means if any item that has durability, i.e: IFAK, has 200/300 (66% durability remaining), it's flea market price will be reduced by 33%. This applies to most of things that have a durability bar.");
-
+			AllowForeignCurrencyTraders = Config.Bind("1. Quick Sell", "10. Allow selling to traders paying in USD/EUR", false,
+				"If enabled, traders that pay in foreign currency (i.e: Peacekeeper) are considered. Their price is converted to roubles to compare against other traders and the flea market, but you will be paid in their currency.");
 
 			CreateAdvancedConfig();
 		}

@@ -299,7 +299,7 @@ namespace LootValuePlus
 			{
 				return 0;
 			}
-			return offer.Price;
+			return offer.RoublePrice;
 		}
 
 		public static TraderOffer GetBestTraderOffer(Item item)
@@ -316,7 +316,8 @@ namespace LootValuePlus
 					.Where(trader => trader.Info.Available && !trader.Info.Disabled && trader.Info.Unlocked && !trader.Settings.AvailableInRaid)
 					.Select(trader => GetTraderOffer(clone, trader))
 					.Where(offer => offer != null)
-					.OrderByDescending(offer => offer.Price)
+					.Where(offer => LootValueMod.AllowForeignCurrencyTraders.Value || offer.IsRoubleOffer)
+					.OrderByDescending(offer => offer.RoublePrice)
 					.FirstOrDefault();
 
 			return bestOffer;
@@ -330,8 +331,6 @@ namespace LootValuePlus
 			{
 				return null;
 			}
-
-			// TODO: try to see if we can convert non rubles to rubles
 
 			return result.HasValue ? new TraderOffer(
 				trader.Id,
@@ -433,6 +432,14 @@ namespace LootValuePlus
 			Course = course;
 			Count = count;
 		}
+
+		public const string RoubleSymbol = "₽";
+
+		public bool IsRoubleOffer => Currency == RoubleSymbol;
+
+		// Price converted to roubles, used for comparing against flea and between traders.
+		// Price stays in the trader's own currency, as that is what ConfirmSell expects.
+		public int RoublePrice => IsRoubleOffer ? Price : (int)Math.Round(Price * Course);
 	}
 
 

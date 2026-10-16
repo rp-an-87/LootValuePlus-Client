@@ -375,10 +375,18 @@ namespace LootValuePlus
         public readonly bool HasTraderOffer;
         public readonly int PricePerSlot;
         public readonly int UnitaryPrice;
+        public readonly int NativePrice;
+        public readonly string CurrencySymbol;
+        public readonly bool IsForeignCurrency;
 
         public TraderPriceState(ItemState itemState, Item item)
         {
-            TraderOfferPrice = TraderUtils.GetBestTraderPrice(item);
+            var offer = TraderUtils.GetBestTraderOffer(item);
+            // TraderOfferPrice is always in roubles so every comparison against flea stays valid
+            TraderOfferPrice = offer?.RoublePrice ?? 0;
+            NativePrice = offer?.Price ?? 0;
+            CurrencySymbol = offer?.Currency ?? TraderOffer.RoubleSymbol;
+            IsForeignCurrency = offer != null && !offer.IsRoubleOffer;
             HasTraderOffer = TraderOfferPrice > 0;
             PricePerSlot = TraderOfferPrice / itemState.Slots;
             UnitaryPrice = TraderOfferPrice / itemState.StackAmount;
@@ -837,11 +845,21 @@ namespace LootValuePlus
             TooltipUtils.StartSizeTag(ref text, fontSize);
 
             TooltipUtils.AppendTextToToolip(ref text, traderName, traderNameColor);
-            TooltipUtils.AppendTextToToolip(ref text, $"₽ {traderPrice.FormatNumber()}", traderPricePerSlotColor);
+            // native price/symbol are rouble ones for rouble traders, so no branching needed here
+            var symbol = Ctx.TraderState.CurrencySymbol;
+            var nativePrice = Ctx.TraderState.NativePrice;
+            TooltipUtils.AppendTextToToolip(ref text, $"{symbol} {nativePrice.FormatNumber()}", traderPricePerSlotColor);
+
+            if (Ctx.TraderState.IsForeignCurrency)
+            {
+                TooltipUtils.StartSizeTag(ref text, 10);
+                TooltipUtils.AppendTextToToolip(ref text, $" (₽ {traderPrice.FormatNumber()})", "#555555");
+                TooltipUtils.EndSizeTag(ref text);
+            }
 
             if (Ctx.ItemState.IsStack())
             {
-                var unitPrice = $" (₽ {(traderPrice / Ctx.ItemState.StackAmount).FormatNumber()} e.)";
+                var unitPrice = $" ({symbol} {(nativePrice / Ctx.ItemState.StackAmount).FormatNumber()} e.)";
                 TooltipUtils.AppendTextToToolip(ref text, unitPrice, "#333333");
             }
 
