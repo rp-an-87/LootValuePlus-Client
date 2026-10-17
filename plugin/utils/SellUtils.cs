@@ -262,8 +262,24 @@ namespace LootValuePlus
 			ApplyFleaOffer(price, ids);
 		}
 
+		private static readonly Random random = new Random();
+
+		// Randomizes the listing price by +/- FleaSellRandomVariancePercent around the average flea price.
+		private static int ApplyRandomVariance(int price)
+		{
+			int variance = LootValueMod.FleaSellRandomVariancePercent.Value;
+			if (variance <= 0 || price <= 0)
+			{
+				return price;
+			}
+
+			double factor = 1 + ((random.NextDouble() * 2) - 1) * variance / 100.0;
+			return Math.Max(1, (int)Math.Round(price * factor));
+		}
+
 		private static void ApplyFleaOffer(int price, string[] itemIds)
 		{
+			price = ApplyRandomVariance(price);
 			var offerRequeriment = new BarterTemplate()
 			{
 				count = price,

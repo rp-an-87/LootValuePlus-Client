@@ -74,6 +74,7 @@ namespace LootValuePlus
 		internal static ConfigEntry<bool> HideLowerPriceInRaid;
 
 		internal static ConfigEntry<bool> ReducePriceInFleaForBrokenItem;
+		internal static ConfigEntry<int> FleaSellRandomVariancePercent;
 		internal static ConfigEntry<bool> AllowForeignCurrencyTraders;
 		internal static ConfigEntry<bool> ShowFleaMarketEligibility;
 		internal static ConfigEntry<bool> ShowNonVitalWeaponPartsFleaPrice;
@@ -136,6 +137,13 @@ If enabled:
 				"This means if any item that has durability, i.e: IFAK, has 200/300 (66% durability remaining), it's flea market price will be reduced by 33%. This applies to most of things that have a durability bar.");
 			AllowForeignCurrencyTraders = Config.Bind("1. Quick Sell", "10. Allow selling to traders paying in USD/EUR", false,
 				"If enabled, traders that pay in foreign currency (i.e: Peacekeeper) are considered. Their price is converted to roubles to compare against other traders and the flea market, but you will be paid in their currency.");
+
+			FleaSellRandomVariancePercent = Config.Bind("1. Quick Sell", "11. Flea listing price random variance (%)", 4,
+				new ConfigDescription(@"The price shown (Flea Avg) is the average of what the server compares your offer against to decide if it sells. When listing to the flea, the price is randomized by +/- this percent so your offers are not all priced identically.
+At 0 offers are listed at exactly the average.
+The default server sell formula gives a 100% sell chance as long as you list up to ~4% above the average, and the chance drops quickly above that (about 50% at +24%). That is why the default is 4: it never goes above that and still varies the price.
+Increase it for more variance, but values above 4 can list above the 100% sale zone. The average can also shift between when the price is cached and when you list, so keep a margin if you want sales to be near-certain.",
+					new AcceptableValueRange<int>(0, 50)));
 
 			CreateAdvancedConfig();
 		}

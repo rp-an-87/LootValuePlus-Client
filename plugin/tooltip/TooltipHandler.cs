@@ -875,7 +875,7 @@ namespace LootValuePlus
             var pricePerSlot = Ctx.FleaState.PricePerSlotWithModifiers;
             var fleaPrice = Ctx.FleaState.FleaPriceWithModifiers;
 
-            var fleaName = $"Flea: ";
+            var fleaName = $"Flea Avg: ";
             var fleaNameColor = fleaBuys ? "#ffffff" : "#444444";
             var fleaPricePerSlotColor = fleaBuys ? SlotColoring.GetColorFromValuePerSlots(pricePerSlot) : "#444444";
             var fontSize = fleaBuys ? 14 : 10;
