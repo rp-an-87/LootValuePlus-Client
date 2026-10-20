@@ -121,11 +121,13 @@
     </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>
-      if not exist "$(ClientModTargetDir)\$(AssemblyName)" mkdir "$(ClientModTargetDir)\$(AssemblyName)"
-      copy "$(TargetPath)" "$(ClientModTargetDir)\$(AssemblyName)\$(TargetFileName)"
-      echo "$(TargetPath)"
-    </PostBuildEvent>
-  </PropertyGroup>
+  <Target Name="CopyToSPT" AfterTargets="Build">
+    <!-- .orig = the first DLL ever replaced (never overwritten); .bak = the previous deploy. A loaded DLL can be renamed but not overwritten, so the old one is moved aside first. -->
+    <MakeDir Directories="$(ClientModTargetDir)\$(AssemblyName)" />
+    <Copy SourceFiles="$(ClientModTargetDir)\$(AssemblyName)\$(TargetFileName)" DestinationFiles="$(ClientModTargetDir)\$(AssemblyName)\$(TargetFileName).orig" Condition="Exists('$(ClientModTargetDir)\$(AssemblyName)\$(TargetFileName)') And !Exists('$(ClientModTargetDir)\$(AssemblyName)\$(TargetFileName).orig')" />
+    <Delete Files="$(ClientModTargetDir)\$(AssemblyName)\$(TargetFileName).bak" ContinueOnError="true" />
+    <Move SourceFiles="$(ClientModTargetDir)\$(AssemblyName)\$(TargetFileName)" DestinationFiles="$(ClientModTargetDir)\$(AssemblyName)\$(TargetFileName).bak" Condition="Exists('$(ClientModTargetDir)\$(AssemblyName)\$(TargetFileName)')" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ClientModTargetDir)\$(AssemblyName)" />
+    <Message Importance="high" Text="Copied to $(ClientModTargetDir)\$(AssemblyName)" />
+  </Target>
 </Project>
