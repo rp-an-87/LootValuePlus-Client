@@ -1,4 +1,7 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using EFT;
 using SPT.Reflection.Patching;
 using BepInEx;
@@ -75,6 +78,7 @@ namespace LootValuePlus
 
 		internal static ConfigEntry<bool> ReducePriceInFleaForBrokenItem;
 		internal static ConfigEntry<int> FleaSellRandomVariancePercent;
+		internal static ConfigEntry<bool> UseWeaponPartsPrice;
 		internal static ConfigEntry<bool> AllowForeignCurrencyTraders;
 		internal static ConfigEntry<bool> ShowFleaMarketEligibility;
 		internal static ConfigEntry<bool> ShowNonVitalWeaponPartsFleaPrice;
@@ -84,6 +88,8 @@ namespace LootValuePlus
 		internal static ConfigEntry<int> CacheTtl;
 		internal static ConfigEntry<bool> UpdateGlobalCacheIfAnyCacheOutOfDate;
 		internal static ConfigEntry<bool> DebugLogs;
+		internal static ConfigEntry<float> SellChanceBase;
+		internal static ConfigEntry<float> SellChanceMultiplier;
 
 		private void SetupConfig()
 		{
@@ -144,8 +150,77 @@ At 0 offers are listed at exactly the average.
 The default server sell formula gives a 100% sell chance as long as you list up to ~4% above the average, and the chance drops quickly above that (about 50% at +24%). That is why the default is 4: it never goes above that and still varies the price.
 Increase it for more variance, but values above 4 can list above the 100% sale zone. The average can also shift between when the price is cached and when you list, so keep a margin if you want sales to be near-certain.",
 					new AcceptableValueRange<int>(0, 50)));
+			UseWeaponPartsPrice = Config.Bind("1. Quick Sell", "12. Price single weapons by their parts", true,
+				@"When you list one weapon, the server does not compare your price with the flea average of that weapon: it compares it with the weapon's handbook price plus the flea price of each part. That is often far below the average, so a gun listed at the average rarely sells.
+With this on, weapons are priced (and shown in the tooltip as 'Flea (parts)') the way the server judges them, so they sell. Needs the global item cache. Other items always use the flea average.
+Turn it off to go back to listing weapons at the flea average of their model.");
 
 			CreateAdvancedConfig();
+			ApplyNaturalSettingsOrder();
+		}
+
+		// The settings window sorts the keys as text, so "10." lands before "2.". Give every setting an explicit order that follows the
+		// numbers in its name instead (0, 0.1, 1, 2, 2.1, ..., 10, 11). Keys are not renamed, so saved values stay.
+		private static readonly Regex NumberPrefix = new Regex(@"^\s*(\d+(?:\.\d+)*)", RegexOptions.Compiled);
+		private static readonly FieldInfo DescriptionField = typeof(ConfigEntryBase).GetField("<Description>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+
+		private static int[] NumberPrefixOf(string key)
+		{
+			var match = NumberPrefix.Match(key);
+			return match.Success ? match.Groups[1].Value.Split('.').Select(int.Parse).ToArray() : null;
+		}
+
+		private static int CompareKeys(string a, string b)
+		{
+			var pa = NumberPrefixOf(a);
+			var pb = NumberPrefixOf(b);
+			if (pa == null || pb == null)
+			{
+				return pa == pb ? string.CompareOrdinal(a, b) : (pa == null ? 1 : -1);  // unnumbered keys go last
+			}
+
+			for (var i = 0; i < Math.Min(pa.Length, pb.Length); i++)
+			{
+				if (pa[i] != pb[i])
+				{
+					return pa[i].CompareTo(pb[i]);
+				}
+			}
+
+			return pa.Length != pb.Length ? pa.Length.CompareTo(pb.Length) : string.CompareOrdinal(a, b);
+		}
+
+		private void ApplyNaturalSettingsOrder()
+		{
+			try
+			{
+				foreach (var section in Config.Keys.GroupBy(definition => definition.Section))
+				{
+					var ordered = section.ToList();
+					ordered.Sort((a, b) => CompareKeys(a.Key, b.Key));
+
+					for (var i = 0; i < ordered.Count; i++)
+					{
+						var entry = Config[ordered[i]];
+						var order = ordered.Count - i;  // the higher the order, the higher in the list
+
+						var attributes = entry.Description.Tags.OfType<ConfigurationManagerAttributes>().FirstOrDefault();
+						if (attributes != null)
+						{
+							attributes.Order = order;
+							continue;
+						}
+
+						var description = new ConfigDescription(entry.Description.Description, entry.Description.AcceptableValues,
+							entry.Description.Tags.Concat(new object[] { new ConfigurationManagerAttributes { Order = order } }).ToArray());
+						DescriptionField?.SetValue(entry, description);
+					}
+				}
+			}
+			catch (Exception e)
+			{
+				logger.LogWarning($"Could not order the settings: {e.Message}");
+			}
 		}
 
 		private void CreateAdvancedConfig()
@@ -182,6 +257,9 @@ Increase it for more variance, but values above 4 can list above the 100% sale z
 					return "";
 				}
 			);
+
+			SellChanceBase = Config.Bind("2. Advanced", "5. Server flea sell chance: base", 50f, getAdvancedConfigDescription("The server's sell.chance.base from ragfair.json (50 by default). Only change it if you changed it on the server. Used to keep listings of damaged items inside the 100% sale zone."));
+			SellChanceMultiplier = Config.Bind("2. Advanced", "6. Server flea sell chance: multiplier", 1.24f, getAdvancedConfigDescription("The server's sell.chance.sellMultiplier from ragfair.json (1.24 by default). Only change it if you changed it on the server."));
 
 
 		}

@@ -14,6 +14,14 @@ namespace LootValuePlus
 	internal static class FleaPriceCache
 	{
 		public static Dictionary<string, CachePrice> cache = new Dictionary<string, CachePrice>();
+		public static DateTime LastGlobalRefresh { get; private set; } = DateTime.MinValue;
+
+		// From the same bulk request as the averages. What SPT prices a single weapon by: its own handbook price plus the flea base price of each part
+		private static Dictionary<string, int> basePrices = new Dictionary<string, int>();
+		private static Dictionary<string, int> staticPrices = new Dictionary<string, int>();
+
+		public static int GetBasePrice(string templateId) => basePrices.TryGetValue(templateId, out var price) ? price : 0;
+		public static int GetStaticPrice(string templateId) => staticPrices.TryGetValue(templateId, out var price) ? price : 0;
 		public static IEftSession Session => ClientAppUtils.GetClientApp().GetClientBackEndSession();
 
 		public static async Task<int?> FetchPrice(string templateId)
@@ -142,24 +150,41 @@ namespace LootValuePlus
 				return;
 			}
 
-			// clear cache for previously saved stuff
-			cache.Clear();
+			// fetch all ids first: if the request fails or comes back empty (server busy right after a raid) the old prices stay
+			var prices = (await GetAllTemplateIdSellingPrice()).ToList();
+			if (prices.Count == 0)
+			{
+				Globals.logger.LogWarning($"Flea price refresh returned no prices, keeping the {cache.Count} cached ones.");
+				return;
+			}
 
-			// fetch all ids & update cache
-			// Globals.logger.LogInfo($"Getting prices");
-			var prices = await GetAllTemplateIdSellingPrice();
-			// Globals.logger.LogInfo($"Get prices: {prices}");
+			var fresh = new Dictionary<string, CachePrice>();
+			var freshBase = new Dictionary<string, int>();
+			var freshStatic = new Dictionary<string, int>();
 			prices.ExecuteForEach(price =>
 			{
-				var templateId = price.templateId;
-				// Globals.logger.LogInfo($"Create cache [{templateId}]: {price.price}");
-				cache[templateId] = new CachePrice(price.price);
+				fresh[price.templateId] = new CachePrice(price.price);
+				freshBase[price.templateId] = price.basePrice;
+				freshStatic[price.templateId] = price.staticPrice;
 			});
+
+			// replace the cache in one step, so a lookup never sees a half filled one
+			basePrices = freshBase;
+			staticPrices = freshStatic;
+			cache = fresh;
+			LastGlobalRefresh = DateTime.Now;
+			Globals.logger.LogInfo($"Flea price cache refreshed: {fresh.Count} prices.");
 
 			return;
 		}
 
 
+
+		// The server's average for one item right now, bypassing the cache (diagnostics only)
+		public static int QueryLivePrice(string templateId)
+		{
+			return Task.Run(() => QueryTemplateIdSellingPrice(templateId)).Result;
+		}
 
 		private static async Task<int> QueryTemplateIdSellingPrice(string templateId)
 		{
@@ -234,6 +259,8 @@ namespace LootValuePlus
 	{
 		public string templateId { get; set; }
 		public int price { get; set; }
+		public int basePrice { get; set; }
+		public int staticPrice { get; set; }
 	}
 
 	public class FleaPricesResponse

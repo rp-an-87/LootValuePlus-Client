@@ -62,11 +62,42 @@ namespace LootValuePlus
 			return (int) price.Value;
 		}
 
+		// A single weapon is not compared with the flea average of its model: SPT judges the sale chance against the sum of its parts
+		// (the weapon at its handbook price, every part at its flea base price). That is often far below the average, so listing a gun
+		// at the average barely sells. Needs the bulk price list; false when it hasn't been loaded.
+		public static bool TryGetWeaponPartsPrice(Item item, out int price)
+		{
+			price = 0;
+			if (!LootValueMod.UseWeaponPartsPrice.Value || !(item is Weapon))
+			{
+				return false;
+			}
+
+			double total = 0;
+			foreach (var part in item.GetAllItems())
+			{
+				var partPrice = part == item ? FleaPriceCache.GetStaticPrice(part.TemplateId) : FleaPriceCache.GetBasePrice(part.TemplateId);
+				if (part == item && partPrice == 0)
+				{
+					return false;
+				}
+				total += partPrice;
+			}
+
+			price = (int) total;
+			return true;
+		}
+
 		public static int GetFleaMarketUnitPrice(Item item)
 		{
 			if (!item.Template.CanSellOnRagfair)
 			{
 				return 0;
+			}
+
+			if (TryGetWeaponPartsPrice(item, out var partsPrice))
+			{
+				return partsPrice;
 			}
 
 			int unitPrice = GetFleaValue(item);
@@ -80,7 +111,8 @@ namespace LootValuePlus
 			bool applyConditionReduction = LootValueMod.ReducePriceInFleaForBrokenItem.Value;
 			if (applyConditionReduction)
 			{
-				price = (int)(price * ItemUtils.GetResourcePercentageOfItem(item));
+				// the same condition the server judges the offer by (not the durability bar), see SellQuality
+				price = (int)(price * SellQuality.GetPriceFactor(item));
 			}
 
 			return price;
@@ -246,7 +278,7 @@ namespace LootValuePlus
 			var price = GetFleaMarketUnitPriceWithModifiers(itemToCheck);
 			var ids = itemsToSell.Select(i => i.Id).ToArray();
 
-			ApplyFleaOffer(price, ids);
+			ApplyFleaOffer(price, ids, GetCeilingPrice(itemToCheck), itemToCheck);
 		}
 
 		public static void SellToFlea(Item itemToSell)
@@ -259,7 +291,7 @@ namespace LootValuePlus
 			var price = GetFleaMarketUnitPriceWithModifiers(itemToSell);
 			var ids = new string[1] { itemToSell.Id };
 
-			ApplyFleaOffer(price, ids);
+			ApplyFleaOffer(price, ids, GetCeilingPrice(itemToSell), itemToSell);
 		}
 
 		private static readonly Random random = new Random();
@@ -277,9 +309,49 @@ namespace LootValuePlus
 			return Math.Max(1, (int)Math.Round(price * factor));
 		}
 
-		private static void ApplyFleaOffer(int price, string[] itemIds)
+		// Highest unit price that still has the full sale chance, or int.MaxValue when the condition reduction is off (then the
+		// listing price is not tied to the condition at all)
+		private static int GetCeilingPrice(Item item)
 		{
-			price = ApplyRandomVariance(price);
+			if (!LootValueMod.ReducePriceInFleaForBrokenItem.Value)
+			{
+				return int.MaxValue;
+			}
+
+			var ceiling = GetFleaMarketUnitPrice(item) * (double) SellQuality.GetCeilingFactor(SellQuality.GetQuality(item));
+			return ceiling >= int.MaxValue ? int.MaxValue : Math.Max(1, (int) Math.Floor(ceiling));
+		}
+
+		// Debug log: how far the cached average is from the server's average right now, and the sale chance that gives this listing
+		private static void LogListing(Item item, int listedPrice)
+		{
+			try
+			{
+				var templateId = item.TemplateId;
+				FleaPriceCache.cache.TryGetValue(templateId, out var cached);
+				var live = FleaPriceCache.QueryLivePrice(templateId);
+				// what the server compares the offer with: the parts price for a single weapon, else the average
+				var target = TryGetWeaponPartsPrice(item, out var partsPrice) ? partsPrice : live;
+				var quality = SellQuality.GetQuality(item);
+				var age = cached == null ? -1 : (int) (DateTime.Now - cached.lastUpdate).TotalSeconds;
+				var drift = cached == null || cached.price <= 0 ? 0 : (live - cached.price) * 100.0 / cached.price;
+				Globals.logger.LogInfo($"Flea listing {item.ShortName.Localized()} ({templateId}): cached average {cached?.price} (age {age}s), server average now {live} ({drift:+0.0;-0.0}%), " +
+					$"compared against {target}{(target != live ? " (parts price)" : "")}, quality {quality:0.###}, listed at {listedPrice}, expected sale chance {SellQuality.PredictChance(target, quality, listedPrice)}%");
+			}
+			catch (Exception ex)
+			{
+				Globals.logger.LogWarning($"Could not log the flea listing: {ex.Message}");
+			}
+		}
+
+		private static void ApplyFleaOffer(int price, string[] itemIds, int ceilingPrice, Item item)
+		{
+			// the random variance may lower the price, but never lifts it out of the 100% sale zone
+			price = Math.Min(ApplyRandomVariance(price), ceilingPrice);
+			if (LootValueMod.DebugLogs.Value)
+			{
+				LogListing(item, price);
+			}
 			var offerRequeriment = new BarterTemplate()
 			{
 				count = price,

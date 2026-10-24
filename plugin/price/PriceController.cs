@@ -21,12 +21,22 @@ namespace LootValuePlus
             [PatchPrefix]
             protected static void Prefix()
             {
-                // game ended, do something here
+                // raid ended (extract, death or leaving): the offers on the flea move on while we play, so take the averages again.
+                // Forced, so it doesn't depend on the flea market state during the raid end; the old prices are kept if it fails.
                 if (LootValueMod.EnableGlobalCache.Value)
                 {
-
-                    Task.Run(() => FleaPriceCache.FetchPricesAndUpdateCache());
-
+                    Globals.LogDebug("Raid ended - updating flea price cache...");
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await FleaPriceCache.FetchPricesAndUpdateCache(forceUpdate: true);
+                        }
+                        catch (Exception ex)
+                        {
+                            Globals.logger.LogError($"Failed to update flea price cache after the raid: {ex}");
+                        }
+                    });
                 }
 
             }

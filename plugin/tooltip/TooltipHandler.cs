@@ -875,7 +875,8 @@ namespace LootValuePlus
             var pricePerSlot = Ctx.FleaState.PricePerSlotWithModifiers;
             var fleaPrice = Ctx.FleaState.FleaPriceWithModifiers;
 
-            var fleaName = $"Flea Avg: ";
+            // a single weapon is judged against its parts, not the flea average of its model (see FleaUtils.TryGetWeaponPartsPrice)
+            var fleaName = FleaUtils.TryGetWeaponPartsPrice(Ctx.Item, out _) ? "Flea (parts): " : "Flea Avg: ";
             var fleaNameColor = fleaBuys ? "#ffffff" : "#444444";
             var fleaPricePerSlotColor = fleaBuys ? SlotColoring.GetColorFromValuePerSlots(pricePerSlot) : "#444444";
             var fontSize = fleaBuys ? 14 : 10;
