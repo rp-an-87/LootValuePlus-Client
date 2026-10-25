@@ -40,14 +40,21 @@ namespace LootValuePlus
             tooltipText += $"</size>";
         }
 
-        public static void AppendSeparator(ref string tooltipText, string color = "#444444", bool appendNewLineAfter = true)
+        // A thin line of em dashes, about 170 pixels wide: as wide as the narrowest tooltips already are, so it doesn't widen any
+        public static void AppendSeparator(ref string tooltipText, bool appendNewLineAfter = true)
         {
             AppendNewLineToTooltipText(ref tooltipText);
-            AppendTextToToolip(ref tooltipText, "--------------------", color);
+            tooltipText += $"<size=7><color=#555555>{new string('—', 48)}</color></size>";
             if (appendNewLineAfter)
             {
                 AppendNewLineToTooltipText(ref tooltipText);
             }
+        }
+
+        // "[Alt+Shift+Click] sell": the keys in light grey brackets, then what they do, small like the hotkey hints of CustomRpTweaks
+        public static void AppendHotkey(ref string tooltipText, string keys, string action)
+        {
+            tooltipText += $"<size=10><color=#B8B8B8>[{keys}]</color> <color=#8A8A8A>{action}</color></size>";
         }
 
     }

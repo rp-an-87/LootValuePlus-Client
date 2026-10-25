@@ -101,8 +101,9 @@ namespace LootValuePlus
             Item = item;
             StackAmount = item.StackObjectsCount;
             IsEmpty = item.IsEmpty();
-            var durability = ItemUtils.GetResourcePercentageOfItem(item);
-            MissingDurability = 100 - durability * 100;
+            // the price reduction the listing price actually gets (keys, meds, food and the like count too, and the server judges
+            // condition by the square root of the durability), not the missing part of the durability bar
+            MissingDurability = (1f - SellQuality.GetPriceFactor(item)) * 100f;
             var size = item.CalculateCellSize();
             Slots = size.X * size.Y;
             IsWeapon = ItemUtils.IsItemWeapon(item);
@@ -1065,7 +1066,8 @@ namespace LootValuePlus
                 return;
 
             TooltipUtils.AppendSeparator(ref text);
-            TooltipUtils.AppendTextToToolip(ref text, $"Sell with Alt+Shift+Click", "#888888");
+            // say who it goes to: the one click goes to whichever pays more (or to the trader when the flea can't or shouldn't be used)
+            TooltipUtils.AppendHotkey(ref text, "Alt+Shift+Click", Ctx.SellabilityState.TraderBuys() ? "sell to trader" : "list on flea");
 
             if (Ctx.SellabilityState.FleaBuys())
             {
@@ -1083,7 +1085,7 @@ namespace LootValuePlus
 
             if (Ctx.SellabilityState.CanBeSoldToTrader)
             {
-                TooltipUtils.AppendTextToToolip(ref text, $"Sell to Trader with Alt+Shift+Left Click", "#888888");
+                TooltipUtils.AppendHotkey(ref text, "Alt+Shift+Left Click", "sell to trader");
             }
 
             if (Ctx.SellabilityState.CanBeSoldToTrader && Ctx.SellabilityState.CanBeSoldToFlea)
@@ -1093,7 +1095,7 @@ namespace LootValuePlus
 
             if (Ctx.SellabilityState.CanBeSoldToFlea)
             {
-                TooltipUtils.AppendTextToToolip(ref text, $"List to Flea with Alt+Shift+Right Click", "#888888");
+                TooltipUtils.AppendHotkey(ref text, "Alt+Shift+Right Click", "list to flea");
                 AddMultipleItemsSaleSection(ref text);
             }
         }
