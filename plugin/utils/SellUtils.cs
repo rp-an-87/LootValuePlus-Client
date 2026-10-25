@@ -143,7 +143,8 @@ namespace LootValuePlus
 
 		public static bool ContainsNonFleableItemsInside(Item item)
 		{
-			return item.GetAllItems().Any(i => i.Template.CanSellOnRagfair == false);
+			// the rounds in an ammo box don't count: the box is sold as it is and the game itself only looks at the box
+			return item.GetAllItems().Any(i => i.Template.CanSellOnRagfair == false && !(i.Parent?.Container?.ParentItem is AmmoBox));
 		}
 
 		public static bool CanBeSoldInFleaRightNow(Item item, bool displayWarning = true)
