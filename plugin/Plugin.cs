@@ -42,6 +42,7 @@ namespace LootValuePlus
 			// new FixesController.WeaponManagerClass_ValidateScopeSmoothZoomUpdate_Patch().Enable();
 
 			SlotColoring.UseDefaultColors();
+			ApplyPriceColors();
 			gameObject.AddComponent<TooltipRedrawManager>();
 		}
 
@@ -68,6 +69,16 @@ namespace LootValuePlus
 		internal static ConfigEntry<bool> ShowPricePerKgAndPerSlotOutOfRaid;
 
 
+		internal static ConfigEntry<Color>[] TierColor;
+		internal static ConfigEntry<int>[] TierMaxPerSlot;
+		internal static ConfigEntry<int>[] TierMaxTotal;
+		internal static ConfigEntry<bool> GildEnabled;
+		internal static ConfigEntry<int> GildMinPerSlot;
+		internal static ConfigEntry<int> GildMinPerKg;
+		internal static ConfigEntry<string> GildSymbol;
+		internal static ConfigEntry<string> GildColor;
+		internal static ConfigEntry<int> GildColumnPx;
+
 		internal static ConfigEntry<bool> ShowTotalFleaValueOfContainedItems;
 		internal static ConfigEntry<bool> TotalValueOfContainedItemsOverridesKgAndSlotPrice;
 		internal static ConfigEntry<bool> ShowMaximumSingleItemPriceWithContainedItems;
@@ -91,6 +102,14 @@ namespace LootValuePlus
 		internal static ConfigEntry<float> SellChanceBase;
 		internal static ConfigEntry<float> SellChanceMultiplier;
 
+		private static void ApplyPriceColors()
+		{
+			SlotColoring.SetFromConfig(
+				TierColor.Select(x => x.Value).ToList(),
+				TierMaxPerSlot.Select(x => x.Value).ToList(),
+				TierMaxTotal.Select(x => x.Value).ToList());
+		}
+
 		private void SetupConfig()
 		{
 
@@ -113,6 +132,40 @@ namespace LootValuePlus
 				"When seeing contained items, it will also show the price of the most expensive item, painted in it's price per slot color.");
 			ShowBestInSlotInsteadOfBestRawPrice = Config.Bind("0. Item Prices", "8.2.1 Consider best price per slot as most expensive", false,
 				"Most expensive contained item will be calculated based on Price per slot instead of net price.");
+
+			var tiers = SlotColoring.DefaultColors;
+			TierColor = new ConfigEntry<Color>[tiers.Count];
+			TierMaxPerSlot = new ConfigEntry<int>[tiers.Count - 1];
+			TierMaxTotal = new ConfigEntry<int>[tiers.Count - 1];
+			for (var i = 0; i < tiers.Count; i++)
+			{
+				var last = i == tiers.Count - 1;
+				Color defaultColor;
+				ColorUtility.TryParseHtmlString(tiers[i].HexColor, out defaultColor);
+				var n = i + 1;
+				TierColor[i] = Config.Bind("0.1 Price Colors", $"{n}. Tier {n} color", defaultColor,
+					last ? "Color for everything above the previous tier's limits."
+						: "A price gets the color of the first tier whose limit is above it. Keep tiers in ascending order.");
+				if (last) continue;
+				TierMaxPerSlot[i] = Config.Bind("0.1 Price Colors", $"{n}.1 Tier {n} below p/slot", tiers[i].UpperBoundPerSlot,
+					"Prices per slot below this value get this tier's color.");
+				TierMaxTotal[i] = Config.Bind("0.1 Price Colors", $"{n}.2 Tier {n} below total", tiers[i].UpperBoundTotal,
+					"Total prices (contained items, most expensive item) below this value get this tier's color.");
+			}
+			foreach (var e in TierColor) e.SettingChanged += (s, a) => ApplyPriceColors();
+			foreach (var e in TierMaxPerSlot) e.SettingChanged += (s, a) => ApplyPriceColors();
+			foreach (var e in TierMaxTotal) e.SettingChanged += (s, a) => ApplyPriceColors();
+
+			GildEnabled = Config.Bind("0.2 Gild", "0. Enable gild star", false,
+				"Shows a star next to the p/KG and p/slot lines when the value reaches the minimums below. Needs 'Show price p/KG & p/slot' enabled.");
+			GildMinPerSlot = Config.Bind("0.2 Gild", "1. Minimum price per slot", 30000,
+				"Gild the p/slot line at or above this value. 0 disables gilding for p/slot.");
+			GildMinPerKg = Config.Bind("0.2 Gild", "2. Minimum price per KG", 100000,
+				"Gild the p/KG line at or above this value. 0 disables gilding for p/KG.");
+			GildSymbol = Config.Bind("0.2 Gild", "3. Symbol", "\u2605", "Character shown when gilded. Change it if the star doesn't render in game.");
+			GildColor = Config.Bind("0.2 Gild", "4. Color", "#FFD70066", "Hex color of the symbol, optionally with alpha as the last two digits (#RRGGBBAA).");
+			GildColumnPx = Config.Bind("0.2 Gild", "5. Symbol column (px)", 110,
+				"Horizontal position of the symbol from the left edge of the tooltip text, so the p/KG and p/slot symbols line up. Raise it if the symbol overlaps the price, lower it if it floats too far right. 0 puts it right after the price instead.");
 
 			// General: Quick Sell
 			EnableQuickSell = Config.Bind("1. Quick Sell", "0. Enable quick sell", true, "Sell any item(s) instantly using the key combination described in 'One button quick sell'.");

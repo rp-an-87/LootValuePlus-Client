@@ -1024,11 +1024,23 @@ namespace LootValuePlus
             TooltipUtils.AppendSeparator(ref text);
             TooltipUtils.StartSizeTag(ref text, 11);
             TooltipUtils.AppendTextToToolip(ref text, $"₽ / KG\t{Ctx.PricePerSlotAndKgState.PricePerKg.FormatNumber()}", "#555555");
+            AppendGildIfAbove(ref text, Ctx.PricePerSlotAndKgState.PricePerKg, LootValueMod.GildMinPerKg.Value);
             AppendTrailingAsterixIfOverrideTrue(ref text);
             TooltipUtils.AppendNewLineToTooltipText(ref text);
             TooltipUtils.AppendTextToToolip(ref text, $"₽ / SLOT\t{Ctx.PricePerSlotAndKgState.PricePerSlot.FormatNumber()}", "#555555");
+            AppendGildIfAbove(ref text, Ctx.PricePerSlotAndKgState.PricePerSlot, LootValueMod.GildMinPerSlot.Value);
             AppendTrailingAsterixIfOverrideTrue(ref text);
             TooltipUtils.EndSizeTag(ref text);
+        }
+
+        private void AppendGildIfAbove(ref string text, int value, int minimum)
+        {
+            if (!LootValueMod.GildEnabled.Value || minimum <= 0 || value < minimum)
+                return;
+
+            var column = LootValueMod.GildColumnPx.Value;
+            var prefix = column > 0 ? $"<pos={column}px>" : " ";
+            TooltipUtils.AppendTextToToolip(ref text, prefix + LootValueMod.GildSymbol.Value, LootValueMod.GildColor.Value);
         }
 
         private void AppendTrailingAsterixIfOverrideTrue(ref string text)

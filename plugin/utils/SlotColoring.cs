@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UnityEngine;
 using static LootValuePlus.Globals;
 
 namespace LootValuePlus
@@ -62,7 +63,21 @@ namespace LootValuePlus
 			ColorConfig.Clear();
 			ColorConfig.AddRange(DefaultColors);
 		}
-		
+
+		/// <summary>Rebuilds the tiers from the F12 entries. The last tier has no limits (catch-all).</summary>
+		public static void SetFromConfig(IList<Color> colors, IList<int> maxPerSlot, IList<int> maxTotal)
+		{
+			ColorConfig.Clear();
+			for (var i = 0; i < colors.Count; i++)
+			{
+				var last = i == colors.Count - 1;
+				ColorConfig.Add(new LootValueConfigColor(
+					last ? int.MaxValue : maxPerSlot[i],
+					last ? int.MaxValue : maxTotal[i],
+					"#" + ColorUtility.ToHtmlStringRGB(colors[i])));
+			}
+		}
+
 		public static string GetColorFromValuePerSlots(int valuePerSlot)
 		{
 			foreach (var bound in ColorConfig)
