@@ -15,6 +15,7 @@ namespace LootValuePlus
         public static void ClearHoverItem()
         {
             hoveredItem = null;
+            PriceChipController.SetHovered(null);
         }
 
         internal class GridItemOnPointerEnterPatch : ModulePatch
@@ -27,6 +28,7 @@ namespace LootValuePlus
                 if (__instance.Item != null)
                 {
                     hoveredItem = __instance.Item;
+                    PriceChipController.SetHovered(__instance);
                 }
             }
         }

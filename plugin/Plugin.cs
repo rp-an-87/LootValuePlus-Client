@@ -30,6 +30,7 @@ namespace LootValuePlus
 			logger = Logger;
 
 			SetupConfig();
+			Config.SettingChanged += (s, a) => PriceChipController.SettingsChanged();
 
 			new TraderPatch().Enable();
 			new TooltipController.ShowTooltipPatch().Enable();
@@ -39,11 +40,13 @@ namespace LootValuePlus
 			new ScreenChangeController.ScreenTypePatch().Enable();
 			new PriceController.OnGameSessionEndPatch().Enable();
 			new PriceController.ProfileSelectedPatch().Enable();
+			new PriceChipController.GridItemUpdateInfoPatch().Enable();
 			// new FixesController.WeaponManagerClass_ValidateScopeSmoothZoomUpdate_Patch().Enable();
 
 			SlotColoring.UseDefaultColors();
 			ApplyPriceColors();
 			gameObject.AddComponent<TooltipRedrawManager>();
+			gameObject.AddComponent<PriceChipManager>();
 		}
 
 		internal static ConfigEntry<bool> EnableQuickSell;
@@ -78,6 +81,27 @@ namespace LootValuePlus
 		internal static ConfigEntry<string> GildSymbol;
 		internal static ConfigEntry<string> GildColor;
 		internal static ConfigEntry<int> GildColumnPx;
+
+		internal static ConfigEntry<bool> ShowPriceChip;
+		internal static ConfigEntry<KeyboardShortcut> ChipToggleKey;
+		internal static ConfigEntry<ChipNumber> ChipNumberShown;
+		internal static ConfigEntry<int> ChipMinimumPrice;
+		internal static ConfigEntry<bool> ChipAltShowsContents;
+		internal static ConfigEntry<bool> ChipShowOnOwn;
+		internal static ConfigEntry<bool> ChipShowOnLoot;
+		internal static ConfigEntry<bool> ChipShowInRaid;
+		internal static ConfigEntry<bool> ChipShowOutOfRaid;
+		internal static ConfigEntry<bool> ChipShowOnWorn;
+		internal static ConfigEntry<bool> ChipShowAmmo;
+		internal static ConfigEntry<bool> ChipShowInsured;
+		internal static ConfigEntry<bool> ChipShowPinned;
+		internal static ConfigEntry<bool> ChipShowLocked;
+		internal static ConfigEntry<ChipCorner> ChipCornerPosition;
+		internal static ConfigEntry<int> ChipOffsetX;
+		internal static ConfigEntry<int> ChipOffsetY;
+		internal static ConfigEntry<int> ChipFontSize;
+		internal static ConfigEntry<float> ChipOpacity;
+		internal static ConfigEntry<float> ChipBackgroundOpacity;
 
 		internal static ConfigEntry<bool> ShowTotalFleaValueOfContainedItems;
 		internal static ConfigEntry<bool> TotalValueOfContainedItemsOverridesKgAndSlotPrice;
@@ -166,6 +190,42 @@ namespace LootValuePlus
 			GildColor = Config.Bind("0.2 Gild", "4. Color", "#FFD70066", "Hex color of the symbol, optionally with alpha as the last two digits (#RRGGBBAA).");
 			GildColumnPx = Config.Bind("0.2 Gild", "5. Symbol column (px)", 110,
 				"Horizontal position of the symbol from the left edge of the tooltip text, so the p/KG and p/slot symbols line up. Raise it if the symbol overlaps the price, lower it if it floats too far right. 0 puts it right after the price instead.");
+
+			ShowPriceChip = Config.Bind("0.3 Price chip", "0. Enable price chip", false,
+				"Draws a small price chip on item icons: the price the tooltip shows, coloured by its p/slot tier. It follows the tooltip's own options (prices in raid, flea before access, hide lower price, ...). Needs the global item cache, and stays off when the Price Index mod is installed since both draw in the same corner.");
+			ChipToggleKey = Config.Bind("0.3 Price chip", "1. Hide/show key", KeyboardShortcut.Empty,
+				"Hides or shows every chip until you press it again or restart the game, without touching the setting above. Unbound by default.");
+			ChipNumberShown = Config.Bind("0.3 Price chip", "2. Price shown", ChipNumber.FullPrice,
+				"FullPrice: what the item is worth (a stack of 30 shows the whole stack). PerSlot: the price per inventory slot. The colour is always the p/slot tier.");
+			ChipMinimumPrice = Config.Bind("0.3 Price chip", "3. Minimum price", 0,
+				"No chip when the price it would show is below this. 0 shows every priced item.");
+			ChipAltShowsContents = Config.Bind("0.3 Price chip", "4. Show contents total while holding LEFT-ALT", true,
+				"The chip of the item under the pointer switches to the total of the items inside it, like the tooltip. Needs 'Show total value of contained items while pressing LEFT-ALT' (0. Item Prices, 8).");
+
+			ChipShowOnOwn = Config.Bind("0.4 Price chip - what to show", "0. Show on my own inventory", true,
+				"Your stash, worn gear, rig, pockets and bags. Turn it off to see chips only on loot.");
+			ChipShowOnLoot = Config.Bind("0.4 Price chip - what to show", "1. Show on loot", true,
+				"Containers, corpses and items on the ground that you are looting (an inventory that isn't yours).");
+			ChipShowInRaid = Config.Bind("0.4 Price chip - what to show", "2. Show in raid", true);
+			ChipShowOutOfRaid = Config.Bind("0.4 Price chip - what to show", "3. Show outside raid", true, "Stash, hideout and menus.");
+			ChipShowOnWorn = Config.Bind("0.4 Price chip - what to show", "4. Show on worn equipment", true,
+				"Items sitting directly in one of your own equipment slots: worn gear, held weapons, armband, attached parts. Equipment on corpses and other players is not affected, nor are the contents of rigs and bags.");
+			ChipShowAmmo = Config.Bind("0.4 Price chip - what to show", "5. Show on loose ammo rounds", true,
+				"Loose rounds can't be listed on the flea. Ammo boxes and magazines are not affected.");
+			ChipShowInsured = Config.Bind("0.4 Price chip - what to show", "6. Show on insured items", true);
+			ChipShowPinned = Config.Bind("0.4 Price chip - what to show", "7. Show on pinned items", true);
+			ChipShowLocked = Config.Bind("0.4 Price chip - what to show", "8. Show on locked items", true);
+
+			ChipCornerPosition = Config.Bind("0.5 Price chip - look", "0. Corner", ChipCorner.BottomLeft, "Corner of the item icon the chip sits in.");
+			ChipOffsetX = Config.Bind("0.5 Price chip - look", "1. Offset X", 0,
+				"Pixels to move the chip from its corner towards the middle of the icon, horizontally. Negative moves it outward.");
+			ChipOffsetY = Config.Bind("0.5 Price chip - look", "2. Offset Y", 0,
+				"Pixels to move the chip from its corner towards the middle of the icon, vertically. Negative moves it outward.");
+			ChipFontSize = Config.Bind("0.5 Price chip - look", "3. Font size", 11, new ConfigDescription("Size of the chip text.", new AcceptableValueRange<int>(6, 24)));
+			ChipOpacity = Config.Bind("0.5 Price chip - look", "4. Opacity", 1f,
+				new ConfigDescription("Opacity of the whole chip, text and background together.", new AcceptableValueRange<float>(0f, 1f)));
+			ChipBackgroundOpacity = Config.Bind("0.5 Price chip - look", "5. Background opacity", 0.6f,
+				new ConfigDescription("Opacity of the black background, relative to the chip opacity. 0 leaves only the text.", new AcceptableValueRange<float>(0f, 1f)));
 
 			// General: Quick Sell
 			EnableQuickSell = Config.Bind("1. Quick Sell", "0. Enable quick sell", true, "Sell any item(s) instantly using the key combination described in 'One button quick sell'.");

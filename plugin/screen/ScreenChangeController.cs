@@ -36,6 +36,19 @@ namespace LootValuePlus
             return true;
         }
 
+        public static bool CanShowPriceChipOnCurrentScreen()
+        {
+            if (!CanShowItemPriceTooltipsOnCurrentScreen())
+            {
+                return false;
+            }
+
+            return CurrentScreen != EEftScreenType.Traders
+                && CurrentScreen != EEftScreenType.Trader
+                && CurrentScreen != EEftScreenType.TraderDialog
+                && CurrentScreen != EEftScreenType.FleaMarket;
+        }
+
         public static bool IsOnInsuranceScreen()
         {
             return CurrentScreen == EEftScreenType.Insurance;
