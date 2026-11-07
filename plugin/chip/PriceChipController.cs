@@ -43,6 +43,7 @@ namespace LootValuePlus
         {
             public bool Show;
             public int Stack;
+            public int Signature;
             public int Price;
             public int PerSlot;
             public bool HasContents;
@@ -50,8 +51,8 @@ namespace LootValuePlus
             public int ContentsPerSlot;
         }
 
-        // Prices are only worked out once per item and state of the world. Containers and weapons with parts inside are not kept
-        // here: their contents change without the stack count changing.
+        // Prices are only worked out once per item and state of the world. Containers are not kept here: their contents change
+        // without the stack count changing. Weapons are, together with a signature of their parts.
         private static readonly Dictionary<string, ChipData> Cache = new Dictionary<string, ChipData>();
         private static long cacheRefreshTicks;
         private static int cacheSettingsVersion = -1;
@@ -193,6 +194,9 @@ namespace LootValuePlus
             if (item.Owner is InventoryController ? !LootValueMod.ChipShowOnOwn.Value : !LootValueMod.ChipShowOnLoot.Value)
                 return false;
 
+            if (!LootValueMod.ChipShowNonFiROnOwn.Value && item.Owner is InventoryController && !item.MarkedAsSpawnedInSession)
+                return false;
+
             if (Globals.HasRaidStarted() ? !LootValueMod.ChipShowInRaid.Value : !LootValueMod.ChipShowOutOfRaid.Value)
                 return false;
 
@@ -215,17 +219,34 @@ namespace LootValuePlus
         {
             DropCacheIfStale();
 
-            var cacheable = item.IsEmpty();
+            // a weapon is kept too, but only while its parts are the same: its value is the sum of them
+            var cacheable = item is Weapon || item.IsEmpty();
+            var signature = item is Weapon ? PartsSignature(item) : 0;
             ChipData data;
-            if (cacheable && Cache.TryGetValue(item.Id, out data) && data.Stack == item.StackObjectsCount)
+            if (cacheable && Cache.TryGetValue(item.Id, out data) && data.Stack == item.StackObjectsCount && data.Signature == signature)
                 return data;
 
             data = Compute(item);
+            data.Signature = signature;
             if (cacheable)
             {
                 Cache[item.Id] = data;
             }
             return data;
+        }
+
+        private static int PartsSignature(Item item)
+        {
+            unchecked
+            {
+                var hash = 17;
+                foreach (var part in item.GetAllItems())
+                {
+                    hash = hash * 31 + part.Id.GetHashCode();
+                    hash = hash * 31 + part.StackObjectsCount;
+                }
+                return hash;
+            }
         }
 
         private static ChipData Compute(Item item)

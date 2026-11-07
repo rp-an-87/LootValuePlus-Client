@@ -96,6 +96,7 @@ namespace LootValuePlus
 		internal static ConfigEntry<bool> ChipShowInsured;
 		internal static ConfigEntry<bool> ChipShowPinned;
 		internal static ConfigEntry<bool> ChipShowLocked;
+		internal static ConfigEntry<bool> ChipShowNonFiROnOwn;
 		internal static ConfigEntry<ChipCorner> ChipCornerPosition;
 		internal static ConfigEntry<int> ChipOffsetX;
 		internal static ConfigEntry<int> ChipOffsetY;
@@ -215,6 +216,8 @@ namespace LootValuePlus
 			ChipShowInsured = Config.Bind("0.4 Price chip - what to show", "6. Show on insured items", true);
 			ChipShowPinned = Config.Bind("0.4 Price chip - what to show", "7. Show on pinned items", true);
 			ChipShowLocked = Config.Bind("0.4 Price chip - what to show", "8. Show on locked items", true);
+			ChipShowNonFiROnOwn = Config.Bind("0.4 Price chip - what to show", "0.1 Show on non-FiR items in my own inventory", true,
+				"Turn it off to get chips only on found-in-raid items in your own inventory. Needs 'Show on my own inventory'. Loot is not affected.");
 
 			ChipCornerPosition = Config.Bind("0.5 Price chip - look", "0. Corner", ChipCorner.BottomLeft, "Corner of the item icon the chip sits in.");
 			ChipOffsetX = Config.Bind("0.5 Price chip - look", "1. Offset X", 0,
