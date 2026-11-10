@@ -219,9 +219,10 @@ namespace LootValuePlus
         {
             DropCacheIfStale();
 
-            // a weapon is kept too, but only while its parts are the same: its value is the sum of them
+            // a weapon is kept too, but only while its parts are the same: its value is the sum of them. IsEmpty() only looks at
+            // grids, so a weapon mod holding other mods in its slots counts as empty; the signature covers those as well.
             var cacheable = item is Weapon || item.IsEmpty();
-            var signature = item is Weapon ? PartsSignature(item) : 0;
+            var signature = cacheable ? PartsSignature(item) : 0;
             ChipData data;
             if (cacheable && Cache.TryGetValue(item.Id, out data) && data.Stack == item.StackObjectsCount && data.Signature == signature)
                 return data;
