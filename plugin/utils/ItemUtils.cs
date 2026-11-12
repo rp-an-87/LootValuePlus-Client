@@ -161,6 +161,16 @@ namespace LootValuePlus
 
 			if (source is not ContainerCollection src || clone is not ContainerCollection dst) return;
 
+			// Ammo boxes hold their cartridges in a StackSlot, which CloneVisibleItem also skips (HideEntrails)
+			foreach (var srcStack in src.Containers.OfType<StackSlot>())
+			{
+				if (dst.GetContainer(srcStack.ID) is not StackSlot dstStack || dstStack.Items.Any()) continue;
+				foreach (var child in srcStack.Items)
+				{
+					dstStack.Add(CloneItemSafely(child), false);
+				}
+			}
+
 			foreach (var srcSlot in src.Containers.OfType<Slot>())
 			{
 				var child = srcSlot.ContainedItem;
